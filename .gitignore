@@ -1,0 +1,8 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / build output
+node_modules/
+dist/
