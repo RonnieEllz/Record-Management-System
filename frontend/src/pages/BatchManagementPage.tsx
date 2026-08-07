@@ -23,6 +23,9 @@ export const BatchManagementPage: React.FC = () => {
   const [confirmAction, setConfirmAction] = useState<'close' | 'reopen' | null>(null);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmExport, setConfirmExport] = useState(false);
+  const [exportPassword, setExportPassword] = useState('');
+  const [exportPasswordError, setExportPasswordError] = useState<string | null>(null);
   const [exportMonth, setExportMonth] = useState<string>('all');
   const [exportName, setExportName] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
@@ -65,6 +68,45 @@ export const BatchManagementPage: React.FC = () => {
   const defaultExportName = getDefaultExportName(exportMonth);
   const trimmedExportName = exportName.trim();
   const isUsingCustomExportName = trimmedExportName.length > 0;
+
+  const openExportModal = () => {
+    setExportPassword('');
+    setExportPasswordError(null);
+    setConfirmExport(true);
+  };
+
+  const authenticateAndExport = async () => {
+    if (!user?.email) return;
+    setExportPasswordError(null);
+    if (!exportPassword.trim()) {
+      setExportPasswordError('Password is required.');
+      return;
+    }
+
+    setIsExporting(true);
+    setError(null);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: exportPassword,
+    });
+
+    if (authError) {
+      setExportPasswordError('Password is incorrect.');
+      setIsExporting(false);
+      return;
+    }
+
+    try {
+      await exportBatchData();
+      setConfirmExport(false);
+      setExportPassword('');
+    } catch (err: any) {
+      setError(getNetworkErrorMessage(err, 'Unable to export batch data.'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const exportBatchData = async () => {
     setIsExporting(true);
@@ -263,7 +305,7 @@ export const BatchManagementPage: React.FC = () => {
               <button
                 type="button"
                 disabled={isExporting}
-                onClick={exportBatchData}
+                onClick={openExportModal}
                 className="glass-button rounded-full px-4 py-2 text-sm"
               >
                 {isExporting ? 'Exporting...' : 'Export CSV'}
@@ -439,6 +481,57 @@ export const BatchManagementPage: React.FC = () => {
               className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
             >
               {isBusy ? 'Processing...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={confirmExport}
+        onClose={() => {
+          setConfirmExport(false);
+          setExportPassword('');
+          setExportPasswordError(null);
+        }}
+        title="Confirm Export"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Enter your password to confirm batch export. This protects export access for your account.
+          </p>
+          <div className="space-y-2">
+            <label htmlFor="export-password" className="block text-sm font-medium text-slate-400">
+              Password
+            </label>
+            <input
+              id="export-password"
+              type="password"
+              value={exportPassword}
+              onChange={(e) => setExportPassword(e.target.value)}
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500"
+              placeholder="Enter your password"
+            />
+            {exportPasswordError && <p className="text-sm text-rose-400">{exportPasswordError}</p>}
+          </div>
+          <div className="flex justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmExport(false);
+                setExportPassword('');
+                setExportPasswordError(null);
+              }}
+              className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={authenticateAndExport}
+              disabled={isExporting}
+              className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {isExporting ? 'Exporting...' : 'Export'}
             </button>
           </div>
         </div>
