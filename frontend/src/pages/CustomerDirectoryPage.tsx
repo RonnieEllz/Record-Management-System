@@ -534,7 +534,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenCreateJobCardModal(c)}
-                          className="px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-900 border border-emerald-400/40 hover:bg-emerald-500/30 text-xs font-semibold"
+                          className="px-3 py-2 rounded-lg bg-emerald-500 text-white border border-emerald-600 hover:bg-emerald-400 text-xs font-semibold"
                         >
                           Create Job Card
                         </button>

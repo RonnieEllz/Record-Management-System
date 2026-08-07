@@ -121,8 +121,12 @@ export const BatchManagementPage: React.FC = () => {
           return true;
         }
 
-        const monthKey = job.created_at.slice(0, 7);
-        return monthKey === exportMonth;
+        const [year, monthNumber] = exportMonth.split('-').map(Number);
+        const jobDate = new Date(job.created_at);
+        return (
+          jobDate.getFullYear() === year &&
+          jobDate.getMonth() + 1 === monthNumber
+        );
       });
 
       filtered.forEach((job) => {
@@ -293,7 +297,7 @@ export const BatchManagementPage: React.FC = () => {
                 {Array.from({ length: 12 }, (_, index) => {
                   const now = new Date();
                   const monthDate = new Date(now.getFullYear(), now.getMonth() - index, 1);
-                  const monthKey = monthDate.toISOString().slice(0, 7);
+                  const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
                   const monthLabel = monthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
                   return (
                     <option key={monthKey} value={monthKey}>

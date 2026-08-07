@@ -25,6 +25,11 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showStartWorkConfirm, setShowStartWorkConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [efdReceiptNum, setEfdReceiptNum] = useState(job?.efd_receipt_num ?? '');
+
+  React.useEffect(() => {
+    setEfdReceiptNum(job?.efd_receipt_num ?? '');
+  }, [job]);
 
   if (!job) return null;
 
@@ -68,10 +73,16 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      await updateJobCard(job.id, {
+      const payload: Partial<Pick<JobCard, 'status' | 'notes' | 'assigned_to_id' | 'efd_receipt_num'>> = {
         status: nextStatus,
         notes: job.notes ?? '',
-      });
+      };
+
+      if (nextStatus === 'COLLECTED') {
+        payload.efd_receipt_num = efdReceiptNum.trim() || null;
+      }
+
+      await updateJobCard(job.id, payload);
 
       setTimeout(() => {
         onJobUpdated?.();
@@ -90,6 +101,11 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
     if (nextStatus === 'IN_PROGRESS') {
       setShowStartWorkConfirm(true);
+      return;
+    }
+
+    if (nextStatus === 'COLLECTED' && !efdReceiptNum.trim()) {
+      setError('EFD receipt number is required to confirm collection.');
       return;
     }
 
@@ -175,12 +191,6 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
             )}
           </div>
 
-          {showFullDetails && (
-            <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-              <JobTimeline currentStatus={job.status} createdAt={job.created_at} updatedAt={job.updated_at} />
-            </div>
-          )}
-
           {/* Status Messages */}
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 text-xs flex items-center gap-2">
@@ -189,7 +199,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
             </div>
           )}
 
-          {/* Action buttons at top */}
+          {/* Action buttons above progression */}
+          {job.status === 'WAITING_FOR_COLLECTION' && (userRole === 'RECEPTIONIST' || userRole === 'ADMINISTRATOR') && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 mb-4">
+              <div className="text-xs font-semibold uppercase text-slate-400 mb-3">Collection details</div>
+              <label htmlFor="efd-receipt-num" className="block text-sm font-medium text-slate-300 mb-2">
+                EFD Receipt Number
+              </label>
+              <input
+                id="efd-receipt-num"
+                type="text"
+                value={efdReceiptNum}
+                onChange={(e) => setEfdReceiptNum(e.target.value)}
+                className="w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500"
+                placeholder="Enter EFD receipt number"
+              />
+              <p className="text-xs text-slate-500 mt-2">This is required before confirming collection.</p>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
@@ -222,6 +249,12 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
               )}
             </div>
           </div>
+
+          {showFullDetails && (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
+              <JobTimeline currentStatus={job.status} createdAt={job.created_at} updatedAt={job.updated_at} />
+            </div>
+          )}
 
           {/* Description */}
           <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">

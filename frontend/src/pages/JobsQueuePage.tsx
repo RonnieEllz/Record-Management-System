@@ -248,7 +248,7 @@ export const JobsQueuePage: React.FC = () => {
   const getStatusColor = (status: JobCard['status']) => {
     switch (status) {
       case 'RECEIVED':
-        return 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
       case 'IN_PROGRESS':
         return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
       case 'WAITING_FOR_COLLECTION':
