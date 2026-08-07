@@ -13,7 +13,11 @@ export type AccessAction =
   | 'manageJobCardAssignments'
   | 'manageFinancials'
   | 'manageReceipts'
-  | 'updateTechnicianNotes';
+  | 'deleteJobCards'
+  | 'updateTechnicianNotes'
+  | 'closeTransactionBatches'
+  | 'reopenTransactionBatches'
+  | 'viewAllTransactions';
 
 const rolePermissions: Record<Role, AccessAction[]> = {
   ADMINISTRATOR: [
@@ -29,7 +33,11 @@ const rolePermissions: Record<Role, AccessAction[]> = {
     'manageJobCardAssignments',
     'manageFinancials',
     'manageReceipts',
+    'deleteJobCards',
     'updateTechnicianNotes',
+    'closeTransactionBatches',
+    'reopenTransactionBatches',
+    'viewAllTransactions',
   ],
   RECEPTIONIST: [
     'readCustomers',
@@ -41,6 +49,7 @@ const rolePermissions: Record<Role, AccessAction[]> = {
     'updateJobCards',
     'manageFinancials',
     'manageReceipts',
+    'closeTransactionBatches',
   ],
   TECHNICIAN: [
     'readCustomers',
@@ -67,3 +76,7 @@ export const canManageFinancials = (role: Role | null | undefined): boolean => c
 export const canUpdateTechnicianNotes = (role: Role | null | undefined): boolean => canAccess(role, 'updateTechnicianNotes');
 export const canManageJobCardAssignments = (role: Role | null | undefined): boolean => canAccess(role, 'manageJobCardAssignments');
 export const canMarkJobCollected = (role: Role | null | undefined): boolean => canAccess(role, 'manageReceipts');
+export const canDeleteJobCards = (role: Role | null | undefined): boolean => canAccess(role, 'deleteJobCards');
+export const canCloseTransactionBatches = (role: Role | null | undefined): boolean => canAccess(role, 'closeTransactionBatches');
+export const canReopenTransactionBatches = (role: Role | null | undefined): boolean => canAccess(role, 'reopenTransactionBatches');
+export const canViewAllTransactions = (role: Role | null | undefined): boolean => canAccess(role, 'viewAllTransactions');

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { resolveSessionUser } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { getNetworkErrorMessage, supabase } from '../lib/supabase';
 import { Lock, Mail, AlertCircle, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 import { BrandMark } from '../components/BrandMark';
 import maintecLogo from '../assets/maintec-logo.webp';
@@ -53,7 +53,7 @@ export const LoginPage: React.FC = () => {
       const mappedUser = resolveSessionUser(supabaseData);
       login(accessToken, mappedUser);
     } catch (err: any) {
-      const message = err?.message || 'Unable to sign in right now. Please try again.';
+      const message = getNetworkErrorMessage(err, 'Unable to sign in right now. Please try again.');
       setError(message.includes('Invalid login credentials') ? 'Invalid email or password. Please try again.' : message);
     } finally {
       setIsSubmitting(false);

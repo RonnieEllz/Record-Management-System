@@ -28,7 +28,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" style={{ background: 'rgba(4, 10, 20, 0.74)' }}>
       <div
-        className="rounded-2xl shadow-2xl w-full max-w-lg max-h-[calc(100vh-4rem)] overflow-hidden transform transition-all animate-in zoom-in-95 duration-200"
+        className="rounded-2xl shadow-2xl w-full max-w-lg transform transition-all animate-in zoom-in-95 duration-200 overflow-hidden max-h-[calc(100vh-4rem)]"
         style={{
           background: 'var(--surface)',
           border: '1px solid var(--outline)',
@@ -46,7 +46,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[calc(100vh-12rem)]" style={{ color: 'var(--text)' }}>
+        <div className="p-6 overflow-y-auto max-h-[calc(100vh-8rem)]" style={{ color: 'var(--text)' }}>
           {children}
         </div>
       </div>

@@ -1,4 +1,13 @@
 /** @type {import('tailwindcss').Config} */
+function withOpacity(variable) {
+  return ({ opacityValue }) => {
+    if (opacityValue === undefined) {
+      return `rgb(var(${variable}))`;
+    }
+    return `rgba(var(${variable}), ${opacityValue})`;
+  };
+}
+
 export default {
   content: [
     "./index.html",
@@ -18,13 +27,17 @@ export default {
           700: '#1f7cb2',
         },
         surface: {
-          DEFAULT: '#07111f',
-          2: '#0b1628',
-          3: '#12213a',
+          DEFAULT: withOpacity('--surface-rgb'),
+          2: withOpacity('--surface-2-rgb'),
+          3: withOpacity('--surface-3-rgb'),
         },
         ink: {
-          DEFAULT: '#f5f9ff',
-          muted: '#94a6c2',
+          DEFAULT: withOpacity('--text-rgb'),
+          muted: withOpacity('--text-muted-rgb'),
+        },
+        accent: {
+          DEFAULT: withOpacity('--accent-rgb'),
+          strong: withOpacity('--accent-strong-rgb'),
         },
       },
     },

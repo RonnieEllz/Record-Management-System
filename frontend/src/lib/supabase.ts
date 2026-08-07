@@ -10,3 +10,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
+export const getNetworkErrorMessage = (err: any, fallbackMessage: string): string => {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return 'No network connection. Please check your internet and try again.';
+  }
+
+  const message = err?.message ?? '';
+  const normalizedMessage = String(message).toLowerCase();
+
+  if (
+    normalizedMessage.includes('failed to fetch') ||
+    normalizedMessage.includes('networkerror') ||
+    normalizedMessage.includes('network request failed') ||
+    normalizedMessage.includes('fetch failed')
+  ) {
+    return 'No network connection. Please check your internet and try again.';
+  }
+
+  return String(message) || fallbackMessage;
+};

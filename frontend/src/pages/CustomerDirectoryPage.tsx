@@ -2,7 +2,16 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Modal } from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
 import { createCustomer, deleteCustomer, fetchCustomers, updateCustomer, type Customer } from '../lib/customers';
-import { createJobCard, fetchJobCards, fetchServices, type JobCard, type ServiceOption } from '../lib/jobCards';
+import {
+  createJobCard,
+  fetchJobCards,
+  fetchServices,
+  fetchTodayBatch,
+  type JobCard,
+  type ServiceOption,
+  type TransactionBatch,
+} from '../lib/jobCards';
+import { getNetworkErrorMessage } from '../lib/supabase';
 import { canCreateCustomers, canCreateJobCards, canDeleteCustomers, canUpdateCustomers } from '../lib/rbac';
 import { formatDate } from '../lib/dateUtils';
 import {
@@ -37,6 +46,7 @@ export const CustomerDirectoryPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCreateJobCardModalOpen, setIsCreateJobCardModalOpen] = useState(false);
+  const [isCreateJobCardConfirmOpen, setIsCreateJobCardConfirmOpen] = useState(false);
   const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -45,7 +55,10 @@ export const CustomerDirectoryPage: React.FC = () => {
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [jobCardNotes, setJobCardNotes] = useState('');
   const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [todayBatch, setTodayBatch] = useState<TransactionBatch | null>(null);
+  const [isCheckingTodayBatch, setIsCheckingTodayBatch] = useState(true);
   const [jobCardPrice, setJobCardPrice] = useState('');
+  const [hasTouchedJobCardFields, setHasTouchedJobCardFields] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -92,7 +105,7 @@ export const CustomerDirectoryPage: React.FC = () => {
       setJobCountsByCustomer(countsByCustomer);
       setJobTotalsByCustomer(totalsByCustomer);
     } catch (err: any) {
-      setError(err?.message || 'Failed to load customers list');
+      setError(getNetworkErrorMessage(err, 'Failed to load customers list'));
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +114,22 @@ export const CustomerDirectoryPage: React.FC = () => {
   useEffect(() => {
     loadCustomers(debouncedSearch);
   }, [debouncedSearch, loadCustomers]);
+
+  const loadTodayBatch = useCallback(async () => {
+    setIsCheckingTodayBatch(true);
+    try {
+      const batch = await fetchTodayBatch();
+      setTodayBatch(batch);
+    } catch (err: any) {
+      console.warn('Unable to refresh today batch status', err);
+    } finally {
+      setIsCheckingTodayBatch(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTodayBatch();
+  }, [loadTodayBatch]);
 
   const resetForm = () => {
     setFormData({ name: '', company: '', phone: '', email: '' });
@@ -145,10 +174,26 @@ export const CustomerDirectoryPage: React.FC = () => {
     setJobCardNotes('');
     setSelectedServiceId('');
     setJobCardPrice('');
+    setHasTouchedJobCardFields(false);
     setFormErrors(null);
     setServices([]);
 
     try {
+      const batch = await fetchTodayBatch();
+      setTodayBatch(batch);
+      if (!batch) {
+        setFormErrors(
+          "Today's transaction batch is not open. Open today's batch in Jobs Queue before creating a new job.",
+        );
+        return;
+      }
+      if (batch.status === 'CLOSED') {
+        setFormErrors(
+          "Today's transaction batch is closed. Reopen the batch or wait until tomorrow before creating a new job.",
+        );
+        return;
+      }
+
       const fetchedServices = await fetchServices();
       setServices(fetchedServices);
       if (fetchedServices[0]) {
@@ -166,21 +211,50 @@ export const CustomerDirectoryPage: React.FC = () => {
       ]);
       setSelectedServiceId('00000000-0000-0000-0000-000000000000');
       setJobCardPrice('0');
-      setError(err?.message || 'Unable to load job services, continuing with a fallback service.');
+      setError(getNetworkErrorMessage(err, 'Unable to load job services, continuing with a fallback service.'));
+      return;
     }
 
     setIsCreateJobCardModalOpen(true);
+  };
+
+  const isCreateJobCardValid = (): boolean => {
+    const priceText = jobCardPrice.trim();
+    const priceValue = Number(priceText);
+    const hasPrice = priceText.length > 0 && Number.isFinite(priceValue) && priceValue > 0;
+    const hasDescription = jobCardNotes.trim().length > 0;
+
+    return hasPrice && hasDescription;
   };
 
   const handleCreateJobCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer) return;
 
+    if (!isCreateJobCardValid()) {
+      setFormErrors('Please provide both price and description before continuing.');
+      return;
+    }
+
+    setFormErrors(null);
+    setIsCreateJobCardConfirmOpen(true);
+  };
+
+  const handleConfirmCreateJobCard = async () => {
+    if (!selectedCustomer) return;
+
+    if (!isCreateJobCardValid()) {
+      setFormErrors('Please provide both price and description before continuing.');
+      setIsCreateJobCardConfirmOpen(false);
+      return;
+    }
+
     const normalizedServiceId = selectedServiceId.trim() || '00000000-0000-0000-0000-000000000000';
     const priceValue = Number(jobCardPrice);
 
     setFormErrors(null);
     setIsSubmitting(true);
+    setIsCreateJobCardConfirmOpen(false);
 
     try {
       await createJobCard({
@@ -202,7 +276,7 @@ export const CustomerDirectoryPage: React.FC = () => {
       loadCustomers(debouncedSearch);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setFormErrors(err?.message || 'Unable to create job card.');
+      setFormErrors(getNetworkErrorMessage(err, 'Unable to create job card.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -222,7 +296,7 @@ export const CustomerDirectoryPage: React.FC = () => {
       loadCustomers(debouncedSearch);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setFormErrors(err?.message || 'Error registering customer');
+      setFormErrors(getNetworkErrorMessage(err, 'Error registering customer'));
     } finally {
       setIsSubmitting(false);
     }
@@ -244,7 +318,7 @@ export const CustomerDirectoryPage: React.FC = () => {
       loadCustomers(debouncedSearch);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setFormErrors(err?.message || 'Error updating customer');
+      setFormErrors(getNetworkErrorMessage(err, 'Error updating customer'));
     } finally {
       setIsSubmitting(false);
     }
@@ -263,7 +337,7 @@ export const CustomerDirectoryPage: React.FC = () => {
       loadCustomers(debouncedSearch);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setError(err?.message || 'Error deleting customer');
+      setError(getNetworkErrorMessage(err, 'Error deleting customer'));
     } finally {
       setIsSubmitting(false);
     }
@@ -308,6 +382,18 @@ export const CustomerDirectoryPage: React.FC = () => {
               className="glass-button self-start sm:self-auto rounded-full p-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Edit2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {canDeleteCustomer && (
+            <button
+              type="button"
+              onClick={() => selectedCustomer && handleOpenDeleteModal(selectedCustomer)}
+              disabled={!selectedCustomer}
+              title={selectedCustomer ? 'Delete selected contact' : 'Select a contact first'}
+              className="glass-button self-start sm:self-auto rounded-full p-2 bg-rose-600/10 text-rose-300 border border-rose-600/20 hover:bg-rose-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Trash2 className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -394,7 +480,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                 {customers.map((c) => (
                   <tr
                     key={c.id}
-                    className={`transition-colors cursor-pointer ${selectedCustomerId === c.id ? 'bg-slate-800/60' : 'hover:bg-slate-800/40'}`}
+                    className={`transition-colors cursor-pointer ${selectedCustomerId === c.id ? 'bg-slate-800/60 text-white' : 'hover:bg-slate-800/40'}`}
                     onClick={() => handleSelectCustomer(c)}
                     onDoubleClick={() => handleOpenCustomerDetailsModal(c)}
                   >
@@ -404,29 +490,29 @@ export const CustomerDirectoryPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 space-y-1 min-w-[140px]">
-                      <div className="text-xs text-slate-300 flex items-center gap-1.5 font-mono">
+                      <div className={`text-xs ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-300'} flex items-center gap-1.5 font-mono`}>
                         <Phone className="w-3.5 h-3.5 text-emerald-400" />
                         <span>{c.phone}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 min-w-[160px]">
-                      <div className="text-xs text-slate-400">{formatDate(c.createdAt)}</div>
+                      <div className={`${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'} text-xs`}>{formatDate(c.createdAt)}</div>
                     </td>
                     <td className="px-6 py-4 min-w-[180px]">
                       {latestJobCardsByCustomer[c.id] ? (
-                        <div className="font-semibold text-slate-100 truncate">{latestJobCardsByCustomer[c.id].job_reference}</div>
+                        <div className={`font-semibold truncate ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-100'}`}>{latestJobCardsByCustomer[c.id].job_reference}</div>
                       ) : (
-                        <div className="text-sm text-slate-400">—</div>
+                        <div className={`text-sm ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'}`}>—</div>
                       )}
                     </td>
                     <td className="px-6 py-4 min-w-[150px]">
                       {latestJobCardsByCustomer[c.id] ? (
-                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 whitespace-nowrap">
+                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${selectedCustomerId === c.id ? 'bg-emerald-700/20 text-emerald-50 border-emerald-200/70' : 'bg-emerald-500/20 text-emerald-900 border border-emerald-300/50'} whitespace-nowrap`}>
                           <FileText className="w-3 h-3" />
                           {latestJobCardsByCustomer[c.id].status}
                         </div>
                       ) : (
-                        <div className="text-sm text-slate-400 whitespace-nowrap">No active job card</div>
+                        <div className={`text-sm ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'} whitespace-nowrap`}>No active job card</div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right font-semibold text-slate-100">
@@ -435,11 +521,20 @@ export const CustomerDirectoryPage: React.FC = () => {
                         : 'K0.00'}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {canCreateJobCardsForCustomer ? (
+                      {canCreateJobCardsForCustomer && todayBatch?.status === 'CLOSED' ? (
+                        <button
+                          type="button"
+                          disabled
+                          title="Today's batch is closed"
+                          className="px-3 py-2 rounded-lg bg-slate-800 text-slate-500 border border-slate-700 text-xs font-semibold cursor-not-allowed"
+                        >
+                          Batch Closed
+                        </button>
+                      ) : canCreateJobCardsForCustomer ? (
                         <button
                           type="button"
                           onClick={() => handleOpenCreateJobCardModal(c)}
-                          className="px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-semibold"
+                          className="px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-900 border border-emerald-400/40 hover:bg-emerald-500/30 text-xs font-semibold"
                         >
                           Create Job Card
                         </button>
@@ -705,13 +800,21 @@ export const CustomerDirectoryPage: React.FC = () => {
             <label className="block text-xs font-semibold uppercase text-slate-300 mb-1">Price</label>
             <input
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               value={jobCardPrice}
-              onChange={(e) => setJobCardPrice(e.target.value)}
+              onChange={(e) => {
+                setJobCardPrice(e.target.value);
+                setHasTouchedJobCardFields(true);
+              }}
               placeholder="Enter the job price"
               className="glass-input w-full"
             />
+            {hasTouchedJobCardFields && (jobCardPrice.trim().length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">Price is required.</p>
+            ) : Number(jobCardPrice) <= 0 ? (
+              <p className="mt-2 text-xs text-slate-500">Price must be greater than zero.</p>
+            ) : null)}
           </div>
 
           <div>
@@ -719,13 +822,19 @@ export const CustomerDirectoryPage: React.FC = () => {
             <textarea
               rows={3}
               value={jobCardNotes}
-              onChange={(e) => setJobCardNotes(e.target.value)}
+              onChange={(e) => {
+                setJobCardNotes(e.target.value);
+                setHasTouchedJobCardFields(true);
+              }}
               placeholder="Describe the job or intake details"
               className="glass-input w-full resize-none"
             />
+            {hasTouchedJobCardFields && jobCardNotes.trim().length === 0 && (
+              <p className="mt-2 text-xs text-slate-500">Description is required.</p>
+            )}
           </div>
 
-          <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+          <div className="sticky bottom-0 left-0 right-0 z-20 glass-panel border-t border-slate-800 py-4 flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => setIsCreateJobCardModalOpen(false)}
@@ -735,13 +844,57 @@ export const CustomerDirectoryPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !isCreateJobCardValid()}
               className="glass-button text-sm"
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Job Card'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={isCreateJobCardConfirmOpen}
+        onClose={() => setIsCreateJobCardConfirmOpen(false)}
+        title="Confirm Job Card Creation"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Create a new job card for <strong className="text-white">{selectedCustomer?.name}</strong>?
+          </p>
+          <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-sm text-slate-300">
+            <p>
+              <span className="font-semibold text-slate-200">Service:</span>{' '}
+              {services.find((service) => service.id === selectedServiceId)?.name || 'Selected service'}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">Price:</span>{' '}
+              {Number(jobCardPrice) || 0}
+            </p>
+            <p>
+              <span className="font-semibold text-slate-200">Description:</span>{' '}
+              {jobCardNotes || 'No description provided.'}
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCreateJobCardConfirmOpen(false)}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCreateJobCard}
+              disabled={isSubmitting}
+              className="glass-button text-sm"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
+            </button>
+          </div>
+        </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}

@@ -1,32 +1,20 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { BatchManagementPage } from './pages/BatchManagementPage';
 import { CustomerDirectoryPage } from './pages/CustomerDirectoryPage';
+import { FinancePage } from './pages/FinancePage';
 import { LoginPage } from './pages/LoginPage';
 import { TechnicianPage } from './pages/TechnicianPage';
 import { JobsQueuePage } from './pages/JobsQueuePage';
-
-export type PageType = 'customers' | 'jobs' | 'technician';
-
-interface PageContextType {
-  currentPage: PageType;
-  setCurrentPage: (page: PageType) => void;
-}
-
-const PageContext = createContext<PageContextType | undefined>(undefined);
-
-export const usePageNavigation = () => {
-  const context = useContext(PageContext);
-  if (!context) {
-    throw new Error('usePageNavigation must be used within PageProvider');
-  }
-  return context;
-};
+import { PageNavigationProvider, usePageNavigation, type PageType } from './context/PageNavigationContext';
 
 const MainLayout: React.FC = () => {
   const { user } = useAuth();
   const { currentPage, setCurrentPage } = usePageNavigation();
   const isTechnician = user?.role === 'TECHNICIAN';
+  const isAdmin = user?.role === 'ADMINISTRATOR';
 
   // Technicians only see their work queue
   if (isTechnician) {
@@ -40,12 +28,14 @@ const MainLayout: React.FC = () => {
     );
   }
 
-  // Receptionist and Admin can navigate between pages
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <Navbar />
       <main className="flex-1">
-        {currentPage === 'jobs' && <JobsQueuePage />}
+        {isAdmin && currentPage === 'dashboard' && <AdminDashboardPage />}
+        {isAdmin && currentPage === 'batches' && <BatchManagementPage />}
+        {isAdmin && currentPage === 'finance' && <FinancePage />}
+        {(isAdmin || !isAdmin) && currentPage === 'jobs' && <JobsQueuePage />}
         {currentPage === 'customers' && <CustomerDirectoryPage />}
       </main>
     </div>
@@ -53,8 +43,19 @@ const MainLayout: React.FC = () => {
 };
 
 const AppShell: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>('customers');
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === 'TECHNICIAN') {
+      setCurrentPage('technician');
+    } else if (user.role === 'ADMINISTRATOR') {
+      setCurrentPage('dashboard');
+    } else {
+      setCurrentPage('customers');
+    }
+  }, [user?.role]);
 
   if (isLoading) {
     return (
@@ -71,9 +72,9 @@ const AppShell: React.FC = () => {
   }
 
   return isAuthenticated ? (
-    <PageContext.Provider value={{ currentPage, setCurrentPage }}>
+    <PageNavigationProvider value={{ currentPage, setCurrentPage }}>
       <MainLayout />
-    </PageContext.Provider>
+    </PageNavigationProvider>
   ) : (
     <LoginPage />
   );

@@ -19,7 +19,7 @@ export const BrandMark: React.FC<BrandMarkProps> = ({
         alt="Maintec Engineering logo"
         style={{
           display: 'block',
-          width: compact ? 320 : 420,
+          width: compact ? 220 : 420,
           height: 'auto',
           maxWidth: '100%',
           borderRadius: 18,

@@ -1,40 +1,77 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchJobCards, type JobCard } from '../lib/jobCards';
+import {
+  fetchJobCards,
+  fetchJobCardsForBatch,
+  fetchJobCardsForCurrentMonth,
+  fetchTodayBatch,
+  createTransactionBatch,
+  closeTransactionBatch,
+  reopenTransactionBatch,
+  type JobCard,
+  type TransactionBatch,
+} from '../lib/jobCards';
+import { getNetworkErrorMessage, supabase } from '../lib/supabase';
 import { JobDetailModal } from '../components/JobDetailModal';
+import { Modal } from '../components/Modal';
 import { formatDate } from '../lib/dateUtils';
-import { Briefcase, Loader2, AlertCircle, CheckCircle2, X, Filter } from 'lucide-react';
+import { canViewAllTransactions, canCloseTransactionBatches, canReopenTransactionBatches } from '../lib/rbac';
+import { Briefcase, Loader2, AlertCircle, CheckCircle2, X, Filter, Clock3 } from 'lucide-react';
 import SearchInput from '../components/SearchInput';
 
 export const JobsQueuePage: React.FC = () => {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
+  const [todayBatch, setTodayBatch] = useState<TransactionBatch | null>(null);
+  const [viewMode, setViewMode] = useState<'TODAY' | 'MONTH' | 'ALL'>('TODAY');
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOpeningBatch, setIsOpeningBatch] = useState(false);
+  const [isOpenBatchConfirmOpen, setIsOpenBatchConfirmOpen] = useState(false);
+  const [openBatchPassword, setOpenBatchPassword] = useState('');
+  const [openBatchPasswordError, setOpenBatchPasswordError] = useState<string | null>(null);
+  const [isClosingBatch, setIsClosingBatch] = useState(false);
+  const [isCloseBatchConfirmOpen, setIsCloseBatchConfirmOpen] = useState(false);
+  const [closeBatchPassword, setCloseBatchPassword] = useState('');
+  const [closeBatchPasswordError, setCloseBatchPasswordError] = useState<string | null>(null);
+  const [isReopeningBatch, setIsReopeningBatch] = useState(false);
+  const [isReopenBatchConfirmOpen, setIsReopenBatchConfirmOpen] = useState(false);
+  const [reopenBatchPassword, setReopenBatchPassword] = useState('');
+  const [reopenBatchPasswordError, setReopenBatchPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<JobCard['status'] | 'ALL'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const loadJobs = async () => {
+  const loadBatchData = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await fetchJobCards();
-      setJobs(data);
+      const [batch, monthJobs] = await Promise.all([fetchTodayBatch(), fetchJobCardsForCurrentMonth()]);
+      setTodayBatch(batch);
+
+      const loadAll = canViewAllTransactions(user?.role);
+      if (viewMode === 'ALL' && loadAll) {
+        const allJobs = await fetchJobCards();
+        setJobs(allJobs);
+      } else if (viewMode === 'MONTH') {
+        setJobs(monthJobs);
+      } else {
+        setJobs(batch ? await fetchJobCardsForBatch(batch.id) : []);
+      }
     } catch (err: any) {
-      setError(err?.message || 'Failed to load job queue.');
+      setError(getNetworkErrorMessage(err, 'Failed to load job queue.'));
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadJobs();
-  }, []);
+    loadBatchData();
+  }, [viewMode, user?.role]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -50,7 +87,142 @@ export const JobsQueuePage: React.FC = () => {
   };
 
   const handleJobUpdated = () => {
-    loadJobs();
+    loadBatchData();
+  };
+
+  const canCloseBatch = canCloseTransactionBatches(user?.role);
+  const canReopenBatch = canReopenTransactionBatches(user?.role);
+  const canSeeAllTransactions = canViewAllTransactions(user?.role);
+
+  const openBatchConfirm = () => {
+    setOpenBatchPassword('');
+    setOpenBatchPasswordError(null);
+    setIsOpenBatchConfirmOpen(true);
+  };
+
+  const openCloseBatchConfirm = () => {
+    setCloseBatchPassword('');
+    setCloseBatchPasswordError(null);
+    setIsCloseBatchConfirmOpen(true);
+  };
+
+  const openReopenBatchConfirm = () => {
+    setReopenBatchPassword('');
+    setReopenBatchPasswordError(null);
+    setIsReopenBatchConfirmOpen(true);
+  };
+
+  const handleConfirmOpenBatch = async () => {
+    if (!user?.email || !user?.id) return;
+
+    setOpenBatchPasswordError(null);
+    if (!openBatchPassword.trim()) {
+      setOpenBatchPasswordError('Please enter your password to confirm.');
+      return;
+    }
+
+    setIsOpeningBatch(true);
+    setError(null);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: openBatchPassword,
+    });
+
+    if (authError) {
+      setIsOpeningBatch(false);
+      setOpenBatchPasswordError('Password is incorrect. Please try again.');
+      return;
+    }
+
+    try {
+      await createTransactionBatch(user.id);
+      setSuccessMessage("Today's batch was opened successfully.");
+      await loadBatchData();
+      setIsOpenBatchConfirmOpen(false);
+      setOpenBatchPassword('');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setError(getNetworkErrorMessage(err, "Unable to open today's batch."));
+    } finally {
+      setIsOpeningBatch(false);
+    }
+  };
+
+  const handleConfirmCloseBatch = async () => {
+    if (!todayBatch || !user?.email) return;
+
+    setCloseBatchPasswordError(null);
+    if (!closeBatchPassword.trim()) {
+      setCloseBatchPasswordError('Please enter your password to confirm.');
+      return;
+    }
+
+    setIsClosingBatch(true);
+    setError(null);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: closeBatchPassword,
+    });
+
+    if (authError) {
+      setIsClosingBatch(false);
+      setCloseBatchPasswordError('Password is incorrect. Please try again.');
+      return;
+    }
+
+    try {
+      await closeTransactionBatch(todayBatch.id, user.id);
+      setSuccessMessage('Today\'s batch was closed successfully.');
+      await loadBatchData();
+      setViewMode('MONTH');
+      setIsCloseBatchConfirmOpen(false);
+      setCloseBatchPassword('');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setError(getNetworkErrorMessage(err, 'Unable to close today\'s batch.'));
+    } finally {
+      setIsClosingBatch(false);
+    }
+  };
+
+  const handleConfirmReopenBatch = async () => {
+    if (!todayBatch || !user?.email) return;
+
+    setReopenBatchPasswordError(null);
+    if (!reopenBatchPassword.trim()) {
+      setReopenBatchPasswordError('Please enter your password to confirm.');
+      return;
+    }
+
+    setIsClosingBatch(true);
+    setError(null);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: reopenBatchPassword,
+    });
+
+    if (authError) {
+      setIsClosingBatch(false);
+      setReopenBatchPasswordError('Password is incorrect. Please try again.');
+      return;
+    }
+
+    try {
+      await reopenTransactionBatch(todayBatch.id, user.id);
+      setSuccessMessage('Today\'s batch was reopened successfully.');
+      await loadBatchData();
+      setViewMode('TODAY');
+      setIsReopenBatchConfirmOpen(false);
+      setReopenBatchPassword('');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setError(getNetworkErrorMessage(err, 'Unable to reopen today\'s batch.'));
+    } finally {
+      setIsReopeningBatch(false);
+    }
   };
 
 
@@ -103,6 +275,92 @@ export const JobsQueuePage: React.FC = () => {
             Manage and track job card lifecycle
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode('TODAY')}
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+              viewMode === 'TODAY' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+            }`}
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('MONTH')}
+            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+              viewMode === 'MONTH' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+            }`}
+          >
+            This Month
+          </button>
+          {canSeeAllTransactions && (
+            <button
+              type="button"
+              onClick={() => setViewMode('ALL')}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                viewMode === 'ALL' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40' : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              All History
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="glass-panel p-4 rounded-3xl border border-slate-800">
+          <div className="flex items-center gap-3">
+            <Clock3 className="w-5 h-5 text-slate-400" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Current View</p>
+              <p className="text-sm text-slate-200">{viewMode === 'TODAY' ? 'Today' : viewMode === 'MONTH' ? 'This Month' : 'All History'}</p>
+            </div>
+          </div>
+        </div>
+        <div className="glass-panel p-4 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Today&apos;s Batch</p>
+            <p className="text-sm text-slate-200">{todayBatch ? todayBatch.status : 'No batch yet'}</p>
+            {todayBatch?.closed_at && (
+              <p className="text-xs text-slate-400 mt-1">Closed: {formatDate(todayBatch.closed_at)}</p>
+            )}
+            {todayBatch?.reopened_at && (
+              <p className="text-xs text-slate-400 mt-1">Reopened: {formatDate(todayBatch.reopened_at)}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {!todayBatch && canCloseBatch && (
+              <button
+                type="button"
+                onClick={openBatchConfirm}
+                disabled={isOpeningBatch}
+                className="glass-button text-sm"
+              >
+                {isOpeningBatch ? 'Opening...' : 'Open Today'}
+              </button>
+            )}
+            {canCloseBatch && todayBatch?.status === 'OPEN' && (
+              <button
+                type="button"
+                onClick={openCloseBatchConfirm}
+                disabled={isClosingBatch}
+                className="glass-button text-sm"
+              >
+                {isClosingBatch ? 'Closing...' : 'Close Today'}
+              </button>
+            )}
+            {canReopenBatch && todayBatch?.status === 'CLOSED' && (
+              <button
+                type="button"
+                onClick={openReopenBatchConfirm}
+                disabled={isReopeningBatch}
+                className="glass-button text-sm"
+              >
+                {isReopeningBatch ? 'Reopening...' : 'Reopen Batch'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Success Notification */}
@@ -130,6 +388,159 @@ export const JobsQueuePage: React.FC = () => {
           </button>
         </div>
       )}
+
+      <Modal
+        isOpen={isCloseBatchConfirmOpen}
+        onClose={() => {
+          setIsCloseBatchConfirmOpen(false);
+          setCloseBatchPassword('');
+          setCloseBatchPasswordError(null);
+        }}
+        title="Confirm Close Batch"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            To close today's batch, please confirm your identity by entering your account password.
+          </p>
+          <div className="space-y-2">
+            <label htmlFor="close-batch-password" className="block text-sm font-medium text-slate-400">
+              Password
+            </label>
+            <input
+              id="close-batch-password"
+              type="password"
+              value={closeBatchPassword}
+              onChange={(e) => setCloseBatchPassword(e.target.value)}
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500"
+              placeholder="Enter your password"
+            />
+            {closeBatchPasswordError && <p className="text-sm text-rose-400">{closeBatchPasswordError}</p>}
+          </div>
+          <div className="flex justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsCloseBatchConfirmOpen(false);
+                setCloseBatchPassword('');
+                setCloseBatchPasswordError(null);
+              }}
+              className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCloseBatch}
+              disabled={isClosingBatch}
+              className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {isClosingBatch ? 'Closing...' : 'Confirm Close'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isOpenBatchConfirmOpen}
+        onClose={() => {
+          setIsOpenBatchConfirmOpen(false);
+          setOpenBatchPassword('');
+          setOpenBatchPasswordError(null);
+        }}
+        title="Confirm Open Batch"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Opening today's batch will allow job cards to be created for today. Please confirm your identity by entering your password.
+          </p>
+          <div className="space-y-2">
+            <label htmlFor="open-batch-password" className="block text-sm font-medium text-slate-400">
+              Password
+            </label>
+            <input
+              id="open-batch-password"
+              type="password"
+              value={openBatchPassword}
+              onChange={(e) => setOpenBatchPassword(e.target.value)}
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500"
+              placeholder="Enter your password"
+            />
+            {openBatchPasswordError && <p className="text-sm text-rose-400">{openBatchPasswordError}</p>}
+          </div>
+          <div className="flex justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpenBatchConfirmOpen(false);
+                setOpenBatchPassword('');
+                setOpenBatchPasswordError(null);
+              }}
+              className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmOpenBatch}
+              disabled={isOpeningBatch}
+              className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {isOpeningBatch ? 'Opening...' : 'Confirm Open'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isReopenBatchConfirmOpen}
+        onClose={() => {
+          setIsReopenBatchConfirmOpen(false);
+          setReopenBatchPassword('');
+          setReopenBatchPasswordError(null);
+        }}
+        title="Confirm Reopen Batch"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Reopening this batch will mark it as open again. Please confirm your identity by entering your password.
+          </p>
+          <div className="space-y-2">
+            <label htmlFor="reopen-batch-password" className="block text-sm font-medium text-slate-400">
+              Password
+            </label>
+            <input
+              id="reopen-batch-password"
+              type="password"
+              value={reopenBatchPassword}
+              onChange={(e) => setReopenBatchPassword(e.target.value)}
+              className="w-full rounded-2xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-slate-100 outline-none focus:border-indigo-500"
+              placeholder="Enter your password"
+            />
+            {reopenBatchPasswordError && <p className="text-sm text-rose-400">{reopenBatchPasswordError}</p>}
+          </div>
+          <div className="flex justify-end gap-3 pt-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsReopenBatchConfirmOpen(false);
+                setReopenBatchPassword('');
+                setReopenBatchPasswordError(null);
+              }}
+              className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmReopenBatch}
+              disabled={isReopeningBatch}
+              className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-50"
+            >
+              {isReopeningBatch ? 'Reopening...' : 'Confirm Reopen'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Filter Bar */}
       <div className="glass-panel p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">

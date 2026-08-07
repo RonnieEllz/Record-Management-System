@@ -1,6 +1,5 @@
 # Environment files
 .env
-.env.*
 
 # Node / build output
 node_modules/

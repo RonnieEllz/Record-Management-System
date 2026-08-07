@@ -18,9 +18,23 @@ export interface JobCard {
   notes: string | null;
   assigned_to_id: string | null;
   efd_receipt_num: string | null;
+  batch_id?: string | null;
+  batch_date?: string | null;
   price?: number;
   created_at: string;
   updated_at?: string;
+}
+
+export interface TransactionBatch {
+  id: string;
+  batch_date: string;
+  status: 'OPEN' | 'CLOSED';
+  created_by: string | null;
+  closed_by: string | null;
+  reopened_by?: string | null;
+  created_at: string;
+  closed_at?: string | null;
+  reopened_at?: string | null;
 }
 
 export interface ServiceOption {
@@ -38,6 +52,118 @@ const fallbackServiceOption: ServiceOption = {
   name: FALLBACK_SERVICE_NAME,
   description: 'Default inspection service',
   price: 0,
+};
+
+const todayDateString = (): string => new Date().toISOString().slice(0, 10);
+
+export const fetchTodayBatch = async (): Promise<TransactionBatch | null> => {
+  const { data, error } = await supabase
+    .from('transaction_batches')
+    .select('*')
+    .eq('batch_date', todayDateString())
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+
+  return data ?? null;
+};
+
+export const createTransactionBatch = async (createdBy?: string | null): Promise<TransactionBatch> => {
+  const { data, error } = await supabase
+    .from('transaction_batches')
+    .insert([
+      {
+        batch_date: todayDateString(),
+        created_by: createdBy ?? null,
+        status: 'OPEN',
+      },
+    ])
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    throw error ?? new Error("Unable to create today's transaction batch.");
+  }
+
+  return data;
+};
+
+export const fetchOrCreateTodayBatch = async (createdBy?: string | null): Promise<TransactionBatch> => {
+  const existingBatch = await fetchTodayBatch();
+  if (existingBatch) {
+    return existingBatch;
+  }
+  return createTransactionBatch(createdBy);
+};
+
+export const fetchAllBatches = async (): Promise<TransactionBatch[]> => {
+  const { data, error } = await supabase
+    .from('transaction_batches')
+    .select('*')
+    .order('batch_date', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as TransactionBatch[];
+};
+
+export const closeTransactionBatch = async (batchId: string, closedBy?: string | null): Promise<void> => {
+  const { error } = await supabase
+    .from('transaction_batches')
+    .update({ status: 'CLOSED', closed_by: closedBy ?? null, closed_at: new Date().toISOString() })
+    .eq('id', batchId);
+
+  if (error) {
+    throw error;
+  }
+};
+
+export const reopenTransactionBatch = async (batchId: string, reopenedBy?: string | null): Promise<void> => {
+  const { error } = await supabase
+    .from('transaction_batches')
+    .update({ status: 'OPEN', reopened_by: reopenedBy ?? null, reopened_at: new Date().toISOString() })
+    .eq('id', batchId);
+
+  if (error) {
+    throw error;
+  }
+};
+
+export const fetchJobCardsForCurrentMonth = async (): Promise<JobCard[]> => {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+  const { data, error } = await supabase
+    .from('job_cards')
+    .select('*, job_services (price)')
+    .gte('created_at', monthStart)
+    .lt('created_at', nextMonthStart)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((jobCard: any) => mapJobCard(jobCard));
+};
+
+export const fetchJobCardsForBatch = async (batchId: string): Promise<JobCard[]> => {
+  const { data, error } = await supabase
+    .from('job_cards')
+    .select('*, job_services (price)')
+    .eq('batch_id', batchId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((jobCard: any) => mapJobCard(jobCard));
 };
 
 const mapJobCard = (jobCard: any): JobCard => ({
@@ -118,6 +244,7 @@ export const createJobCard = async (payload: {
   received_by?: string | null;
   notes?: string | null;
   price?: number | null;
+  batch_id?: string | null;
 }): Promise<JobCard> => {
   const normalizedServiceId = payload.service_id?.trim() || FALLBACK_SERVICE_ID;
 
@@ -128,6 +255,20 @@ export const createJobCard = async (payload: {
     .slice(2, 7)
     .toUpperCase()}`;
 
+  const todayBatch = await fetchTodayBatch();
+
+  if (!todayBatch) {
+    throw new Error(
+      "Today's transaction batch is not open. Open today's batch in Jobs Queue before creating new job cards.",
+    );
+  }
+
+  if (todayBatch.status === 'CLOSED') {
+    throw new Error("Today's transaction batch is closed. Reopen it before creating new job cards.");
+  }
+
+  const resolvedBatch = todayBatch;
+
   const cardInsertPayload: Record<string, unknown> = {
     job_reference: jobReference,
     customer_id: payload.customer_id,
@@ -137,6 +278,7 @@ export const createJobCard = async (payload: {
     phone_number: payload.phone_number,
     received_by: payload.received_by ?? null,
     notes: payload.notes ?? null,
+    batch_id: payload.batch_id ?? resolvedBatch.id,
     status: 'RECEIVED',
   };
 
@@ -188,6 +330,18 @@ export const updateJobCard = async (
 ) => {
   const { error } = await supabase.from('job_cards').update(payload).eq('id', id).select();
 
+  if (error) {
+    throw error;
+  }
+};
+
+export const deleteJobCard = async (id: string) => {
+  const { error: serviceError } = await supabase.from('job_services').delete().eq('job_card_id', id);
+  if (serviceError) {
+    console.warn('Unable to remove linked job services before deleting job card.', serviceError);
+  }
+
+  const { error } = await supabase.from('job_cards').delete().eq('id', id);
   if (error) {
     throw error;
   }

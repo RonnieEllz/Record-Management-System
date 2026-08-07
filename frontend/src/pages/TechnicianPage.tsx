@@ -1,16 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchJobCards, updateJobCard, type JobCard } from '../lib/jobCards';
+import { getNetworkErrorMessage } from '../lib/supabase';
 import { canUpdateTechnicianNotes, canManageJobCardAssignments } from '../lib/rbac';
+import { Modal } from '../components/Modal';
 import { formatDate } from '../lib/dateUtils';
+import SearchInput from '../components/SearchInput';
+import { JobDetailModal } from '../components/JobDetailModal';
 import { Wrench, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export const TechnicianPage: React.FC = () => {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<JobCard[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedJob, setSelectedJob] = useState<JobCard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pendingStartJob, setPendingStartJob] = useState<JobCard | null>(null);
 
   const canUpdateNotes = canUpdateTechnicianNotes(user?.role);
   const canManageAssignments = canManageJobCardAssignments(user?.role);
@@ -23,7 +30,7 @@ export const TechnicianPage: React.FC = () => {
       const data = await fetchJobCards();
       setJobs((data ?? []).filter((job) => job.status !== 'WAITING_FOR_COLLECTION' && job.status !== 'COLLECTED'));
     } catch (err: any) {
-      setError(err?.message || 'Failed to load technician work queue.');
+      setError(getNetworkErrorMessage(err, 'Failed to load technician work queue.'));
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +52,7 @@ export const TechnicianPage: React.FC = () => {
     }
   };
 
-  const handleStatusAdvance = async (job: JobCard, nextStatus: JobCard['status']) => {
+  const performStatusAdvance = async (job: JobCard, nextStatus: JobCard['status']) => {
     try {
       await updateJobCard(job.id, {
         status: nextStatus,
@@ -56,9 +63,46 @@ export const TechnicianPage: React.FC = () => {
       await loadJobs();
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setError(err?.message || 'Unable to update the work item.');
+      setError(getNetworkErrorMessage(err, 'Unable to update the work item.'));
     }
   };
+
+  const handleStatusAdvance = (job: JobCard, nextStatus: JobCard['status']) => {
+    if (nextStatus === 'IN_PROGRESS') {
+      setPendingStartJob(job);
+      return;
+    }
+
+    void performStatusAdvance(job, nextStatus);
+  };
+
+  const confirmStartWork = async () => {
+    if (!pendingStartJob) return;
+
+    const job = pendingStartJob;
+    setPendingStartJob(null);
+    await performStatusAdvance(job, 'IN_PROGRESS');
+  };
+
+  const handleOpenJobDetail = (job: JobCard) => {
+    setSelectedJob(job);
+  };
+
+  const handleCloseJobDetail = () => {
+    setSelectedJob(null);
+  };
+
+  const filteredJobs = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) {
+      return jobs;
+    }
+
+    return jobs.filter((job) =>
+      job.job_reference.toLowerCase().includes(query) ||
+      job.customer_name.toLowerCase().includes(query),
+    );
+  }, [jobs, searchTerm]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -68,14 +112,6 @@ export const TechnicianPage: React.FC = () => {
             <Wrench className="w-6 h-6" style={{ color: 'var(--accent)' }} />
             <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>Technician Work Queue</h2>
           </div>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Technician workflow for status updates, notes, and assignment ownership.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs" style={{ borderColor: 'var(--outline)', background: 'var(--accent-soft)', color: 'var(--text)' }}>
-          <ShieldCheck className="w-4 h-4" />
-          <span>Role-restricted technician access</span>
         </div>
       </div>
 
@@ -92,6 +128,21 @@ export const TechnicianPage: React.FC = () => {
           <span>{error}</span>
         </div>
       )}
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search reference or contact name"
+          ariaLabel="Search technician job queue"
+          className="w-full lg:w-80"
+        />
+        {searchTerm ? (
+          <div className="text-sm text-slate-400">
+            Showing {filteredJobs.length} of {jobs.length} jobs
+          </div>
+        ) : null}
+      </div>
 
       <div className="glass-panel overflow-hidden">
         {isLoading ? (
@@ -112,30 +163,55 @@ export const TechnicianPage: React.FC = () => {
                   <th className="px-6 py-4">Contact Name</th>
                   <th className="px-6 py-4">Date In</th>
                   <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Notes</th>
+                  <th className="px-6 py-4">Description</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {jobs.map((job) => (
+                {filteredJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-slate-100">{job.job_reference}</td>
-                    <td className="px-6 py-4">
+                    <td
+                      className="px-6 py-4 font-semibold text-slate-100 cursor-pointer"
+                      onClick={() => handleOpenJobDetail(job)}
+                    >
+                      {job.job_reference}
+                    </td>
+                    <td
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => handleOpenJobDetail(job)}
+                    >
                       <div className="font-medium text-slate-200">{job.customer_name}</div>
                       <div className="text-xs text-slate-400">{job.company_name}</div>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-400">{formatDate(job.created_at)}</td>
-                    <td className="px-6 py-4">
+                    <td
+                      className="px-6 py-4 text-xs text-slate-400 cursor-pointer"
+                      onClick={() => handleOpenJobDetail(job)}
+                    >
+                      {formatDate(job.created_at)}
+                    </td>
+                    <td
+                      className="px-6 py-4 cursor-pointer"
+                      onClick={() => handleOpenJobDetail(job)}
+                    >
                       <span className="inline-flex rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 text-xs font-semibold">
-                        {job.status}
+                        {job.status.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-400 max-w-xs truncate">{job.notes || '—'}</td>
+                    <td
+                      className="px-6 py-4 text-slate-400 max-w-xs truncate cursor-pointer"
+                      onClick={() => handleOpenJobDetail(job)}
+                    >
+                      {job.notes || '—'}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {canManageAssignments && getJobAction(job) && (
                           <button
-                            onClick={() => handleStatusAdvance(job, getJobAction(job)!.nextStatus)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusAdvance(job, getJobAction(job)!.nextStatus);
+                            }}
                             className="px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-semibold"
                           >
                             {getJobAction(job)!.label}
@@ -150,6 +226,41 @@ export const TechnicianPage: React.FC = () => {
           </div>
         )}
       </div>
+      <Modal
+        isOpen={Boolean(pendingStartJob)}
+        onClose={() => setPendingStartJob(null)}
+        title="Confirm Start Work"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Start work on job <strong className="text-white">{pendingStartJob?.job_reference}</strong>?
+          </p>
+          <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setPendingStartJob(null)}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmStartWork}
+              className="glass-button text-sm"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <JobDetailModal
+        isOpen={Boolean(selectedJob)}
+        onClose={handleCloseJobDetail}
+        job={selectedJob}
+        userRole={user?.role}
+        onJobUpdated={loadJobs}
+      />
     </div>
   );
 };
