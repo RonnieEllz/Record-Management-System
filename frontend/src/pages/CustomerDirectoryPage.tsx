@@ -5,6 +5,7 @@ import { createCustomer, deleteCustomer, fetchCustomers, updateCustomer, type Cu
 import {
   createJobCard,
   fetchJobCards,
+  fetchJobCardsByCustomer,
   fetchServices,
   fetchTodayBatch,
   type JobCard,
@@ -130,6 +131,21 @@ export const CustomerDirectoryPage: React.FC = () => {
   useEffect(() => {
     loadTodayBatch();
   }, [loadTodayBatch]);
+
+  const getJobStatusStyle = (status: JobCard['status']) => {
+    switch (status) {
+      case 'RECEIVED':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+      case 'IN_PROGRESS':
+        return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+      case 'WAITING_FOR_COLLECTION':
+        return 'bg-orange-500/10 text-orange-300 border-orange-500/20';
+      case 'COLLECTED':
+        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+      default:
+        return 'bg-slate-500/10 text-slate-300 border-slate-500/20';
+    }
+  };
 
   const resetForm = () => {
     setFormData({ name: '', company: '', phone: '', email: '' });
@@ -329,6 +345,14 @@ export const CustomerDirectoryPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const existingJobCards = await fetchJobCardsByCustomer(selectedCustomer.id);
+      if (existingJobCards.length > 0) {
+        setError(
+          `Cannot delete '${selectedCustomer.name}' because ${existingJobCards.length} job card(s) are linked to this customer. Remove or reassign those jobs first.`,
+        );
+        return;
+      }
+
       await deleteCustomer(selectedCustomer.id);
 
       setIsDeleteModalOpen(false);
@@ -337,7 +361,14 @@ export const CustomerDirectoryPage: React.FC = () => {
       loadCustomers(debouncedSearch);
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
-      setError(getNetworkErrorMessage(err, 'Error deleting customer'));
+      const normalizedError = String((err?.message ?? err) || '').toLowerCase();
+      if (normalizedError.includes('job_cards_customer_id_fkey') || normalizedError.includes('violates foreign key constraint')) {
+        setError(
+          `Cannot delete '${selectedCustomer.name}' because there are job cards linked to this customer. Remove or reassign those jobs first.`,
+        );
+      } else {
+        setError(getNetworkErrorMessage(err, 'Error deleting customer'));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -507,9 +538,9 @@ export const CustomerDirectoryPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 min-w-[150px]">
                       {latestJobCardsByCustomer[c.id] ? (
-                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${selectedCustomerId === c.id ? 'bg-emerald-700/20 text-emerald-50 border-emerald-200/70' : 'bg-emerald-500/20 text-emerald-900 border border-emerald-300/50'} whitespace-nowrap`}>
+                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${getJobStatusStyle(latestJobCardsByCustomer[c.id].status)} whitespace-nowrap`}>
                           <FileText className="w-3 h-3" />
-                          {latestJobCardsByCustomer[c.id].status}
+                          {latestJobCardsByCustomer[c.id].status.replace(/_/g, ' ')}
                         </div>
                       ) : (
                         <div className={`text-sm ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'} whitespace-nowrap`}>No active job card</div>

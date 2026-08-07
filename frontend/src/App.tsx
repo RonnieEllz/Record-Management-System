@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
@@ -8,35 +9,48 @@ import { FinancePage } from './pages/FinancePage';
 import { LoginPage } from './pages/LoginPage';
 import { TechnicianPage } from './pages/TechnicianPage';
 import { JobsQueuePage } from './pages/JobsQueuePage';
-import { PageNavigationProvider, usePageNavigation, type PageType } from './context/PageNavigationContext';
+
+type PageType = 'dashboard' | 'customers' | 'jobs' | 'batches' | 'finance' | 'technician';
+
+const getDefaultPageForRole = (role?: string): PageType => {
+  if (role === 'TECHNICIAN') return 'technician';
+  if (role === 'ADMINISTRATOR') return 'dashboard';
+  return 'customers';
+};
 
 const MainLayout: React.FC = () => {
   const { user } = useAuth();
-  const { currentPage, setCurrentPage } = usePageNavigation();
   const isTechnician = user?.role === 'TECHNICIAN';
   const isAdmin = user?.role === 'ADMINISTRATOR';
+  const defaultRoute = `/${getDefaultPageForRole(user?.role)}`;
 
-  // Technicians only see their work queue
   if (isTechnician) {
     return (
-      <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
         <Navbar />
-        <main className="flex-1">
-          <TechnicianPage />
+        <main className="flex-1 min-h-0 overflow-y-auto">
+          <Routes>
+            <Route path="/technician" element={<TechnicianPage />} />
+            <Route path="*" element={<Navigate to="/technician" replace />} />
+          </Routes>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <Navbar />
-      <main className="flex-1">
-        {isAdmin && currentPage === 'dashboard' && <AdminDashboardPage />}
-        {isAdmin && currentPage === 'batches' && <BatchManagementPage />}
-        {isAdmin && currentPage === 'finance' && <FinancePage />}
-        {(isAdmin || !isAdmin) && currentPage === 'jobs' && <JobsQueuePage />}
-        {currentPage === 'customers' && <CustomerDirectoryPage />}
+      <main className="flex-1 min-h-0 overflow-y-auto">
+        <Routes>
+          {isAdmin && <Route path="/dashboard" element={<AdminDashboardPage />} />}
+          <Route path="/jobs" element={<JobsQueuePage />} />
+          <Route path="/customers" element={<CustomerDirectoryPage />} />
+          {isAdmin && <Route path="/batches" element={<BatchManagementPage />} />}
+          {isAdmin && <Route path="/finance" element={<FinancePage />} />}
+          <Route path="/" element={<Navigate to={defaultRoute} replace />} />
+          <Route path="*" element={<Navigate to={defaultRoute} replace />} />
+        </Routes>
       </main>
     </div>
   );
@@ -44,18 +58,6 @@ const MainLayout: React.FC = () => {
 
 const AppShell: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const [currentPage, setCurrentPage] = useState<PageType>('customers');
-
-  useEffect(() => {
-    if (!user) return;
-    if (user.role === 'TECHNICIAN') {
-      setCurrentPage('technician');
-    } else if (user.role === 'ADMINISTRATOR') {
-      setCurrentPage('dashboard');
-    } else {
-      setCurrentPage('customers');
-    }
-  }, [user?.role]);
 
   if (isLoading) {
     return (
@@ -72,9 +74,9 @@ const AppShell: React.FC = () => {
   }
 
   return isAuthenticated ? (
-    <PageNavigationProvider value={{ currentPage, setCurrentPage }}>
+    <BrowserRouter>
       <MainLayout />
-    </PageNavigationProvider>
+    </BrowserRouter>
   ) : (
     <LoginPage />
   );

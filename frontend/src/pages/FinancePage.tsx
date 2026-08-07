@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { usePageNavigation } from '../context/PageNavigationContext';
 import { fetchJobCards, fetchAllBatches, type JobCard, type TransactionBatch } from '../lib/jobCards';
 import { canManageFinancials } from '../lib/rbac';
 import { getNetworkErrorMessage } from '../lib/supabase';
@@ -8,10 +8,11 @@ import { formatDate } from '../lib/dateUtils';
 import { Briefcase, Loader2, AlertCircle, CheckCircle2, ArrowRight, ShieldCheck, X, Clock3 } from 'lucide-react';
 import DailyRevenueChart from '../components/DailyRevenueChart';
 import BatchRevenueBarChart from '../components/BatchRevenueBarChart';
+import { GlassButton } from '../components/GlassButton';
 
 export const FinancePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { setCurrentPage } = usePageNavigation();
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [batches, setBatches] = useState<TransactionBatch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,13 +115,13 @@ export const FinancePage: React.FC = () => {
             Review revenue metrics and batch financial summaries.
           </p>
         </div>
-        <button
+        <GlassButton
           type="button"
-          onClick={() => setCurrentPage('dashboard')}
-          className="glass-button rounded-full px-4 py-2 text-sm"
+          onClick={() => navigate('/dashboard')}
+          className="rounded-full px-4 py-2 text-sm"
         >
           Back to overview
-        </button>
+        </GlassButton>
       </div>
 
       {error && (

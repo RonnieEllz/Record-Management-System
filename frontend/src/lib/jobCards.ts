@@ -324,6 +324,20 @@ export const fetchJobCards = async (): Promise<JobCard[]> => {
   return (data ?? []).map((jobCard: any) => mapJobCard(jobCard));
 };
 
+export const fetchJobCardsByCustomer = async (customerId: string): Promise<JobCard[]> => {
+  const { data, error } = await supabase
+    .from('job_cards')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((jobCard: any) => mapJobCard(jobCard));
+};
+
 export const updateJobCard = async (
   id: string,
   payload: Partial<Pick<JobCard, 'status' | 'notes' | 'assigned_to_id' | 'efd_receipt_num'>>,

@@ -9,6 +9,11 @@ import SearchInput from '../components/SearchInput';
 import { JobDetailModal } from '../components/JobDetailModal';
 import { Wrench, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 
+type PendingStatusChange = {
+  job: JobCard;
+  nextStatus: JobCard['status'];
+};
+
 export const TechnicianPage: React.FC = () => {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<JobCard[]>([]);
@@ -17,7 +22,7 @@ export const TechnicianPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [pendingStartJob, setPendingStartJob] = useState<JobCard | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
 
   const canUpdateNotes = canUpdateTechnicianNotes(user?.role);
   const canManageAssignments = canManageJobCardAssignments(user?.role);
@@ -68,20 +73,26 @@ export const TechnicianPage: React.FC = () => {
   };
 
   const handleStatusAdvance = (job: JobCard, nextStatus: JobCard['status']) => {
-    if (nextStatus === 'IN_PROGRESS') {
-      setPendingStartJob(job);
+    if (nextStatus === 'IN_PROGRESS' || nextStatus === 'WAITING_FOR_COLLECTION') {
+      setPendingStatusChange({ job, nextStatus });
       return;
     }
 
     void performStatusAdvance(job, nextStatus);
   };
 
-  const confirmStartWork = async () => {
-    if (!pendingStartJob) return;
+  const getConfirmationActionLabel = (nextStatus: JobCard['status']) => {
+    if (nextStatus === 'IN_PROGRESS') return 'Start work';
+    if (nextStatus === 'WAITING_FOR_COLLECTION') return 'Mark ready for collection';
+    return 'Confirm';
+  };
 
-    const job = pendingStartJob;
-    setPendingStartJob(null);
-    await performStatusAdvance(job, 'IN_PROGRESS');
+  const confirmPendingStatusChange = async () => {
+    if (!pendingStatusChange) return;
+
+    const { job, nextStatus } = pendingStatusChange;
+    setPendingStatusChange(null);
+    await performStatusAdvance(job, nextStatus);
   };
 
   const handleOpenJobDetail = (job: JobCard) => {
@@ -227,25 +238,26 @@ export const TechnicianPage: React.FC = () => {
         )}
       </div>
       <Modal
-        isOpen={Boolean(pendingStartJob)}
-        onClose={() => setPendingStartJob(null)}
-        title="Confirm Start Work"
+        isOpen={Boolean(pendingStatusChange)}
+        onClose={() => setPendingStatusChange(null)}
+        title={pendingStatusChange?.nextStatus === 'IN_PROGRESS' ? 'Confirm Start Work' : 'Confirm Ready for Collection'}
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-300">
-            Start work on job <strong className="text-white">{pendingStartJob?.job_reference}</strong>?
+            {getConfirmationActionLabel(pendingStatusChange?.nextStatus ?? 'IN_PROGRESS')} for job{' '}
+            <strong className="text-white">{pendingStatusChange?.job.job_reference}</strong>?
           </p>
           <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => setPendingStartJob(null)}
+              onClick={() => setPendingStatusChange(null)}
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={confirmStartWork}
+              onClick={confirmPendingStatusChange}
               className="glass-button text-sm"
             >
               Confirm

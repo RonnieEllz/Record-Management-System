@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { usePageNavigation } from '../context/PageNavigationContext';
+import { NavLink } from 'react-router-dom';
 import { LogOut, User, ShieldCheck, Sun, Moon, Briefcase, Users } from 'lucide-react';
 import { BrandMark } from './BrandMark';
 import maintecLogo from '../assets/maintec-logo.webp';
 
-export const Navbar: React.FC = () => {
+const NavbarComponent: React.FC = () => {
   const { user, logout } = useAuth();
-  const { currentPage, setCurrentPage } = usePageNavigation();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const isTechnician = user?.role === 'TECHNICIAN';
   const isAdmin = user?.role === 'ADMINISTRATOR';
@@ -50,69 +49,79 @@ export const Navbar: React.FC = () => {
           {user && !isTechnician && (
             <nav className="hidden md:flex items-center gap-1 mx-6">
               {isAdmin && (
-                <button
-                  onClick={() => setCurrentPage('dashboard')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === 'dashboard'
-                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
-                  }`}
+                <NavLink
+                  to="/dashboard"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
+                    }`
+                  }
                 >
                   <ShieldCheck className="w-4 h-4" />
                   Overview
-                </button>
+                </NavLink>
               )}
               {isReceptionist && (
-                <button
-                  onClick={() => setCurrentPage('jobs')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === 'jobs'
-                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
-                  }`}
+                <NavLink
+                  to="/jobs"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
+                    }`
+                  }
                 >
                   <Briefcase className="w-4 h-4" />
                   Jobs Queue
-                </button>
+                </NavLink>
               )}
               {isReceptionist && (
-                <button
-                  onClick={() => setCurrentPage('customers')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === 'customers'
-                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
-                  }`}
+                <NavLink
+                  to="/customers"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
+                    }`
+                  }
                 >
                   <Users className="w-4 h-4" />
                   Customers
-                </button>
+                </NavLink>
               )}
               {isAdmin && (
-                <button
-                  onClick={() => setCurrentPage('batches')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === 'batches'
-                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
-                  }`}
+                <NavLink
+                  to="/batches"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
+                    }`
+                  }
                 >
                   <ShieldCheck className="w-4 h-4" />
                   Batches
-                </button>
+                </NavLink>
               )}
               {isAdmin && (
-                <button
-                  onClick={() => setCurrentPage('finance')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    currentPage === 'finance'
-                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                      : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
-                  }`}
+                <NavLink
+                  to="/finance"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                        : 'text-slate-400 hover:text-slate-300 hover:bg-slate-800/40'
+                    }`
+                  }
                 >
                   <Briefcase className="w-4 h-4" />
                   Finance
-                </button>
+                </NavLink>
               )}
             </nav>
           )}
@@ -156,3 +165,5 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+
+export const Navbar = React.memo(NavbarComponent);

@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { usePageNavigation } from '../context/PageNavigationContext';
 import { fetchCustomers, type Customer } from '../lib/customers';
 import { fetchJobCards, type JobCard } from '../lib/jobCards';
 import { getNetworkErrorMessage } from '../lib/supabase';
 import { formatDate } from '../lib/dateUtils';
 import { canCreateCustomers, canCreateJobCards, canManageFinancials } from '../lib/rbac';
 import { Briefcase, Users, Clock3, Loader2, AlertCircle, CheckCircle2, ArrowRight, X } from 'lucide-react';
+import { GlassButton } from '../components/GlassButton';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const { setCurrentPage } = usePageNavigation();
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<JobCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +84,7 @@ export const AdminDashboardPage: React.FC = () => {
   }, {});
 
   const handleNavigate = (page: 'customers' | 'jobs') => {
-    setCurrentPage(page);
+    navigate(`/${page}`);
   };
 
   return (
@@ -99,22 +100,22 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
+          <GlassButton
             type="button"
             onClick={() => handleNavigate('customers')}
-            className="glass-button rounded-full px-4 py-2 text-sm flex items-center gap-2"
+            icon={<Users className="w-4 h-4" />}
+            className="rounded-full px-4 py-2 text-sm"
           >
-            <Users className="w-4 h-4" />
             Customers
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
             type="button"
             onClick={() => handleNavigate('jobs')}
-            className="glass-button rounded-full px-4 py-2 text-sm flex items-center gap-2"
+            icon={<Briefcase className="w-4 h-4" />}
+            className="rounded-full px-4 py-2 text-sm"
           >
-            <Briefcase className="w-4 h-4" />
             Jobs Queue
-          </button>
+          </GlassButton>
         </div>
       </div>
 
@@ -288,37 +289,37 @@ export const AdminDashboardPage: React.FC = () => {
             <h3 className="text-xl font-semibold text-slate-100">Admin quick access</h3>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button
+            <GlassButton
               type="button"
               onClick={() => handleNavigate('customers')}
-              className="glass-button rounded-full px-4 py-2 text-sm"
+              className="rounded-full px-4 py-2 text-sm"
             >
               Customer Directory
-            </button>
-            <button
+            </GlassButton>
+            <GlassButton
               type="button"
               onClick={() => handleNavigate('jobs')}
-              className="glass-button rounded-full px-4 py-2 text-sm"
+              className="rounded-full px-4 py-2 text-sm"
             >
               Jobs Queue
-            </button>
+            </GlassButton>
             {canAddCustomer && (
-              <button
+              <GlassButton
                 type="button"
                 onClick={() => handleNavigate('customers')}
-                className="glass-button rounded-full px-4 py-2 text-sm"
+                className="rounded-full px-4 py-2 text-sm"
               >
                 Add Customer
-              </button>
+              </GlassButton>
             )}
             {canAddJobCard && (
-              <button
+              <GlassButton
                 type="button"
                 onClick={() => handleNavigate('customers')}
-                className="glass-button rounded-full px-4 py-2 text-sm"
+                className="rounded-full px-4 py-2 text-sm"
               >
                 Create Job Card
-              </button>
+              </GlassButton>
             )}
           </div>
         </div>

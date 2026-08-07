@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { usePageNavigation } from '../context/PageNavigationContext';
 import { fetchAllBatches, fetchJobCards, fetchJobCardsForBatch, closeTransactionBatch, reopenTransactionBatch, type TransactionBatch } from '../lib/jobCards';
 import { canReopenTransactionBatches, canCloseTransactionBatches, canManageFinancials } from '../lib/rbac';
 import { getNetworkErrorMessage, supabase } from '../lib/supabase';
 import { formatDate, formatDateShort, formatTime } from '../lib/dateUtils';
 import { CheckCircle2, Loader2, AlertCircle, ShieldCheck, X } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import { GlassButton } from '../components/GlassButton';
 
 export const BatchManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { setCurrentPage } = usePageNavigation();
   const [batches, setBatches] = useState<TransactionBatch[]>([]);
   const [selectedBatch, setSelectedBatch] = useState<TransactionBatch | null>(null);
   const [batchJobs, setBatchJobs] = useState<number>(0);
@@ -238,13 +239,13 @@ export const BatchManagementPage: React.FC = () => {
             Review batch history and audit details.
           </p>
         </div>
-        <button
+        <GlassButton
           type="button"
-          onClick={() => setCurrentPage('dashboard')}
-          className="glass-button rounded-full px-4 py-2 text-sm"
+          onClick={() => navigate('/dashboard')}
+          className="rounded-full px-4 py-2 text-sm"
         >
           Back to overview
-        </button>
+        </GlassButton>
       </div>
 
       {error && (
@@ -306,14 +307,14 @@ export const BatchManagementPage: React.FC = () => {
                   );
                 })}
               </select>
-              <button
+              <GlassButton
                 type="button"
                 disabled={isExporting}
                 onClick={openExportModal}
-                className="glass-button rounded-full px-4 py-2 text-sm"
+                className="rounded-full px-4 py-2 text-sm"
               >
                 {isExporting ? 'Exporting...' : 'Export CSV'}
-              </button>
+              </GlassButton>
             </div>
           </div>
 
