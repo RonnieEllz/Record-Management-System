@@ -138,7 +138,7 @@ export const BatchManagementPage: React.FC = () => {
           job.job_reference,
           job.price != null ? `K${job.price.toFixed(2)}` : 'K0.00',
           job.efd_receipt_num ?? '',
-          job.updated_at ? formatTime(job.updated_at) : '',
+          job.status === 'COLLECTED' && job.updated_at ? formatTime(job.updated_at) : '',
         ]);
       });
 
