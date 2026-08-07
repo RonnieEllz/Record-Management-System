@@ -33,7 +33,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 
       <input
         id={id}
-        type="search"
+        type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
