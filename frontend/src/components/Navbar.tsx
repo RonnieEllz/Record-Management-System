@@ -51,7 +51,7 @@ const NavbarComponent: React.FC = () => {
               {isAdmin && (
                 <NavLink
                   to="/dashboard"
-                  className={({ isActive }) =>
+                  className={({ isActive }: { isActive: boolean }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
@@ -66,7 +66,7 @@ const NavbarComponent: React.FC = () => {
               {isReceptionist && (
                 <NavLink
                   to="/jobs"
-                  className={({ isActive }) =>
+                  className={({ isActive }: { isActive: boolean }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
@@ -81,7 +81,7 @@ const NavbarComponent: React.FC = () => {
               {isReceptionist && (
                 <NavLink
                   to="/customers"
-                  className={({ isActive }) =>
+                  className={({ isActive }: { isActive: boolean }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
@@ -96,7 +96,7 @@ const NavbarComponent: React.FC = () => {
               {isAdmin && (
                 <NavLink
                   to="/batches"
-                  className={({ isActive }) =>
+                  className={({ isActive }: { isActive: boolean }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
@@ -111,7 +111,7 @@ const NavbarComponent: React.FC = () => {
               {isAdmin && (
                 <NavLink
                   to="/finance"
-                  className={({ isActive }) =>
+                  className={({ isActive }: { isActive: boolean }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
