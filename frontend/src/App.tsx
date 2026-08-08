@@ -73,19 +73,24 @@ const AppShell: React.FC = () => {
     );
   }
 
-  return isAuthenticated ? (
-    <BrowserRouter>
-      <MainLayout />
-    </BrowserRouter>
-  ) : (
-    <LoginPage />
+  if (isAuthenticated) {
+    return <MainLayout />;
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   );
 };
 
 export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppShell />
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
     </AuthProvider>
   );
 };
