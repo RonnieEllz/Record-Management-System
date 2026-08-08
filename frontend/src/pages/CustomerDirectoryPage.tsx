@@ -31,6 +31,7 @@ import {
   Users,
 } from 'lucide-react';
 import SearchInput from '../components/SearchInput';
+import { getStatusBadgeClass, getStatusLabel } from '../lib/status';
 
 export const CustomerDirectoryPage: React.FC = () => {
   const { user } = useAuth();
@@ -132,20 +133,7 @@ export const CustomerDirectoryPage: React.FC = () => {
     loadTodayBatch();
   }, [loadTodayBatch]);
 
-  const getJobStatusStyle = (status: JobCard['status']) => {
-    switch (status) {
-      case 'RECEIVED':
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
-      case 'IN_PROGRESS':
-        return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
-      case 'WAITING_FOR_COLLECTION':
-        return 'bg-orange-500/10 text-orange-300 border-orange-500/20';
-      case 'COLLECTED':
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
-      default:
-        return 'bg-slate-500/10 text-slate-300 border-slate-500/20';
-    }
-  };
+  // use shared status helpers from lib/status.ts
 
   const resetForm = () => {
     setFormData({ name: '', company: '', phone: '', email: '' });
@@ -538,9 +526,9 @@ export const CustomerDirectoryPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 min-w-[150px]">
                       {latestJobCardsByCustomer[c.id] ? (
-                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${getJobStatusStyle(latestJobCardsByCustomer[c.id].status)} whitespace-nowrap`}>
+                        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(latestJobCardsByCustomer[c.id].status)} whitespace-nowrap`}>
                           <FileText className="w-3 h-3" />
-                          {latestJobCardsByCustomer[c.id].status.replace(/_/g, ' ')}
+                          {getStatusLabel(latestJobCardsByCustomer[c.id].status)}
                         </div>
                       ) : (
                         <div className={`text-sm ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'} whitespace-nowrap`}>No active job card</div>
@@ -618,7 +606,7 @@ export const CustomerDirectoryPage: React.FC = () => {
                 </div>
                 <div className="text-xs text-slate-400 flex items-center gap-1.5">
                   <span className="font-semibold text-slate-200">Status:</span>
-                  <span>{latestJobCardsByCustomer[selectedCustomer.id].status.replace(/_/g, ' ')}</span>
+                  <span>{getStatusLabel(latestJobCardsByCustomer[selectedCustomer.id].status)}</span>
                 </div>
                 <div className="text-xs text-slate-400 flex items-center gap-1.5">
                   <span className="font-semibold text-slate-200">Date In:</span>

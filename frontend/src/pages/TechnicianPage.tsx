@@ -8,6 +8,7 @@ import { formatDate } from '../lib/dateUtils';
 import SearchInput from '../components/SearchInput';
 import { JobDetailModal } from '../components/JobDetailModal';
 import { Wrench, Loader2, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { getStatusBadgeClass, getStatusLabel } from '../lib/status';
 
 type PendingStatusChange = {
   job: JobCard;
@@ -204,8 +205,8 @@ export const TechnicianPage: React.FC = () => {
                       className="px-6 py-4 cursor-pointer"
                       onClick={() => handleOpenJobDetail(job)}
                     >
-                      <span className="inline-flex rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 text-xs font-semibold">
-                        {job.status.replace(/_/g, ' ')}
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border ${getStatusBadgeClass(job.status)}`}>
+                        {getStatusLabel(job.status)}
                       </span>
                     </td>
                     <td

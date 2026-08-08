@@ -5,6 +5,7 @@ import { deleteJobCard, updateJobCard, type JobCard } from '../lib/jobCards';
 import { getNetworkErrorMessage } from '../lib/supabase';
 import type { Role } from '../lib/auth';
 import { X, Loader2, AlertCircle } from 'lucide-react';
+import { getStatusBadgeClass, getStatusLabel } from '../lib/status';
 
 interface JobDetailModalProps {
   isOpen: boolean;
@@ -169,10 +170,10 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 <div className="font-semibold text-slate-200">Created</div>
                 <div>{new Date(job.created_at).toLocaleString()}</div>
               </div>
-              <div className="flex items-center justify-start gap-2">
+                <div className="flex items-center justify-start gap-2">
                 <div className="font-semibold text-slate-200">Status</div>
-                <span className="inline-flex rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2.5 py-1 text-xs font-semibold">
-                  {job.status.replace(/_/g, ' ')}
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border ${getStatusBadgeClass(job.status)}`}>
+                  {getStatusLabel(job.status)}
                 </span>
               </div>
             </div>

@@ -18,6 +18,7 @@ import { formatDate } from '../lib/dateUtils';
 import { canViewAllTransactions, canCloseTransactionBatches, canReopenTransactionBatches } from '../lib/rbac';
 import { Briefcase, Loader2, AlertCircle, CheckCircle2, X, Filter, Clock3 } from 'lucide-react';
 import SearchInput from '../components/SearchInput';
+import { getStatusBadgeClass, getStatusLabel } from '../lib/status';
 
 export const JobsQueuePage: React.FC = () => {
   const { user } = useAuth();
@@ -244,21 +245,7 @@ export const JobsQueuePage: React.FC = () => {
       .some((value) => value.toLowerCase().includes(query));
   });
 
-  // Get status badge color
-  const getStatusColor = (status: JobCard['status']) => {
-    switch (status) {
-      case 'RECEIVED':
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
-      case 'IN_PROGRESS':
-        return 'bg-amber-500/10 text-amber-300 border-amber-500/20';
-      case 'WAITING_FOR_COLLECTION':
-        return 'bg-orange-500/10 text-orange-300 border-orange-500/20';
-      case 'COLLECTED':
-        return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
-      default:
-        return 'bg-slate-500/10 text-slate-300 border-slate-500/20';
-    }
-  };
+  // Use shared status helpers from lib/status.ts
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -620,11 +607,11 @@ export const JobsQueuePage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border ${getStatusColor(
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border ${getStatusBadgeClass(
                           job.status,
                         )}`}
                       >
-                        {job.status.replace(/_/g, ' ')}
+                        {getStatusLabel(job.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-semibold text-slate-100">
