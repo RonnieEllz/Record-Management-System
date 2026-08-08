@@ -482,7 +482,7 @@ export const CustomerDirectoryPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-hidden">
+          <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
             <table className="w-full min-w-[780px] text-left text-sm text-slate-300">
               <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>

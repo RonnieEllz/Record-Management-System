@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { NavLink } from 'react-router-dom';
-import { LogOut, User, ShieldCheck, Sun, Moon, Briefcase, Users } from 'lucide-react';
+import { LogOut, User, ShieldCheck, Sun, Moon, Briefcase, Users, Menu, X } from 'lucide-react';
 import { BrandMark } from './BrandMark';
 import maintecLogo from '../assets/maintec-logo.webp';
 
 const NavbarComponent: React.FC = () => {
   const { user, logout } = useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isTechnician = user?.role === 'TECHNICIAN';
   const isAdmin = user?.role === 'ADMINISTRATOR';
   const isReceptionist = user?.role === 'RECEPTIONIST';
@@ -27,6 +28,8 @@ const NavbarComponent: React.FC = () => {
     document.documentElement.setAttribute('data-theme', nextTheme);
   };
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   const getRoleBadgeColor = (role?: string) => {
     switch (role) {
       case 'ADMINISTRATOR':
@@ -43,7 +46,7 @@ const NavbarComponent: React.FC = () => {
   return (
     <header className="bg-surface-2/90 border-b border-brand-700/30 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="h-16 flex items-center justify-between">
+        <div className="min-h-16 flex items-center justify-between gap-3 py-2">
           <BrandMark compact logoSrc={maintecLogo} />
 
           {user && !isTechnician && (
@@ -127,7 +130,7 @@ const NavbarComponent: React.FC = () => {
           )}
 
           {user && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <div className="hidden sm:flex items-center gap-3 pr-4 border-r border-brand-700/30">
                 <div className="w-8 h-8 rounded-full bg-surface-3 border border-brand-700/30 flex items-center justify-center text-ink-muted">
                   <User className="w-4 h-4" />
@@ -137,6 +140,17 @@ const NavbarComponent: React.FC = () => {
                   {user.role}
                 </span>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen((open) => !open)}
+                className="md:hidden flex items-center justify-center rounded-lg p-2 text-ink-muted hover:bg-slate-800/60 hover:text-ink transition-colors"
+                title={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={isMobileMenuOpen}
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
 
               <button
                 type="button"
@@ -161,6 +175,38 @@ const NavbarComponent: React.FC = () => {
             </div>
           )}
         </div>
+
+        {user && !isTechnician && isMobileMenuOpen && (
+          <nav className="md:hidden border-t border-brand-700/30 py-3" aria-label="Mobile navigation">
+            <div className="grid gap-1">
+              {isAdmin && (
+                <NavLink onClick={closeMobileMenu} to="/dashboard" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                  <ShieldCheck className="w-4 h-4" /> Overview
+                </NavLink>
+              )}
+              {isReceptionist && (
+                <NavLink onClick={closeMobileMenu} to="/jobs" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                  <Briefcase className="w-4 h-4" /> Jobs Queue
+                </NavLink>
+              )}
+              {isReceptionist && (
+                <NavLink onClick={closeMobileMenu} to="/customers" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                  <Users className="w-4 h-4" /> Customers
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink onClick={closeMobileMenu} to="/batches" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                  <ShieldCheck className="w-4 h-4" /> Batches
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink onClick={closeMobileMenu} to="/finance" className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                  <Briefcase className="w-4 h-4" /> Finance
+                </NavLink>
+              )}
+            </div>
+          </nav>
+        )}
       </div>
     </header>
   );

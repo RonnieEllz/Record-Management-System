@@ -234,7 +234,7 @@ export const FinancePage: React.FC = () => {
             {topBatches.length === 0 ? (
               <p className="text-sm text-slate-500">No batch revenue information is available.</p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overscroll-x-contain">
                 <table className="w-full min-w-[760px] text-left text-sm text-slate-300">
                   <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                     <tr>

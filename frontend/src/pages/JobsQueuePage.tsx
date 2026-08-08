@@ -559,7 +559,7 @@ export const JobsQueuePage: React.FC = () => {
             ariaLabel="Search jobs"
           />
         </div>
-        <div className="ml-auto text-xs text-slate-400 font-medium">
+        <div className="text-xs text-slate-400 font-medium sm:ml-auto">
           {filteredJobs.length} of {jobs.length} jobs
         </div>
       </div>
@@ -582,15 +582,15 @@ export const JobsQueuePage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-hidden">
+          <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
             <table className="w-full min-w-[900px] text-left text-sm text-slate-300">
               <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Date In</th>
-                  <th className="px-6 py-4 font-semibold">Contact Name</th>
-                  <th className="px-6 py-4 font-semibold">Reference</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold text-right">Price</th>
+                  <th className="px-3 py-4 font-semibold sm:px-6">Date In</th>
+                  <th className="px-3 py-4 font-semibold sm:px-6">Contact Name</th>
+                  <th className="px-3 py-4 font-semibold sm:px-6">Reference</th>
+                  <th className="px-3 py-4 font-semibold sm:px-6">Status</th>
+                  <th className="px-3 py-4 font-semibold text-right sm:px-6">Price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">

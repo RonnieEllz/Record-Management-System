@@ -167,8 +167,8 @@ export const TechnicianPage: React.FC = () => {
             <p className="text-base font-semibold text-slate-300">No job cards are currently available.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
+          <div className="overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[860px] text-left text-sm text-slate-300">
               <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
                   <th className="px-6 py-4">Reference</th>
