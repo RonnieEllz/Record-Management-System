@@ -208,10 +208,10 @@ export const BatchManagementPage: React.FC = () => {
 
     try {
       if (confirmAction === 'close') {
-        await closeTransactionBatch(selectedBatch.id, user.id);
+        await closeTransactionBatch(selectedBatch.id, user.id, user.email);
         setSuccess('Batch closed successfully.');
       } else if (confirmAction === 'reopen') {
-        await reopenTransactionBatch(selectedBatch.id, user.id);
+        await reopenTransactionBatch(selectedBatch.id, user.id, user.email);
         setSuccess('Batch reopened successfully.');
       }
       setPassword('');
@@ -375,20 +375,20 @@ export const BatchManagementPage: React.FC = () => {
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Created</p>
                   <p className="text-sm text-slate-100">{formatDate(selectedBatch.created_at)}</p>
-                  <p className="text-xs text-slate-500">Created by: {selectedBatch.created_by ?? 'Unknown'}</p>
+                  <p className="text-xs text-slate-500">Created by: {selectedBatch.created_by_email ?? selectedBatch.created_by ?? 'Unknown'}</p>
                 </div>
                 {selectedBatch.closed_at && (
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Closed</p>
                     <p className="text-sm text-slate-100">{formatDate(selectedBatch.closed_at)}</p>
-                    <p className="text-xs text-slate-500">Closed by: {selectedBatch.closed_by ?? 'Unknown'}</p>
+                    <p className="text-xs text-slate-500">Closed by: {selectedBatch.closed_by_email ?? selectedBatch.closed_by ?? 'Unknown'}</p>
                   </div>
                 )}
                 {selectedBatch.reopened_at && (
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Reopened</p>
                     <p className="text-sm text-slate-100">{formatDate(selectedBatch.reopened_at)}</p>
-                    <p className="text-xs text-slate-500">Reopened by: {selectedBatch.reopened_by ?? 'Unknown'}</p>
+                    <p className="text-xs text-slate-500">Reopened by: {selectedBatch.reopened_by_email ?? selectedBatch.reopened_by ?? 'Unknown'}</p>
                   </div>
                 )}
               </div>

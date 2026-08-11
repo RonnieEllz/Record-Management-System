@@ -30,8 +30,11 @@ export interface TransactionBatch {
   batch_date: string;
   status: 'OPEN' | 'CLOSED';
   created_by: string | null;
+  created_by_email?: string | null;
   closed_by: string | null;
+  closed_by_email?: string | null;
   reopened_by?: string | null;
+  reopened_by_email?: string | null;
   created_at: string;
   closed_at?: string | null;
   reopened_at?: string | null;
@@ -70,13 +73,14 @@ export const fetchTodayBatch = async (): Promise<TransactionBatch | null> => {
   return data ?? null;
 };
 
-export const createTransactionBatch = async (createdBy?: string | null): Promise<TransactionBatch> => {
+export const createTransactionBatch = async (createdBy?: string | null, createdByEmail?: string | null): Promise<TransactionBatch> => {
   const { data, error } = await supabase
     .from('transaction_batches')
     .insert([
       {
         batch_date: todayDateString(),
         created_by: createdBy ?? null,
+        created_by_email: createdByEmail ?? null,
         status: 'OPEN',
       },
     ])
@@ -90,12 +94,12 @@ export const createTransactionBatch = async (createdBy?: string | null): Promise
   return data;
 };
 
-export const fetchOrCreateTodayBatch = async (createdBy?: string | null): Promise<TransactionBatch> => {
+export const fetchOrCreateTodayBatch = async (createdBy?: string | null, createdByEmail?: string | null): Promise<TransactionBatch> => {
   const existingBatch = await fetchTodayBatch();
   if (existingBatch) {
     return existingBatch;
   }
-  return createTransactionBatch(createdBy);
+  return createTransactionBatch(createdBy, createdByEmail);
 };
 
 export const fetchAllBatches = async (): Promise<TransactionBatch[]> => {
@@ -111,10 +115,15 @@ export const fetchAllBatches = async (): Promise<TransactionBatch[]> => {
   return (data ?? []) as TransactionBatch[];
 };
 
-export const closeTransactionBatch = async (batchId: string, closedBy?: string | null): Promise<void> => {
+export const closeTransactionBatch = async (batchId: string, closedBy?: string | null, closedByEmail?: string | null): Promise<void> => {
   const { error } = await supabase
     .from('transaction_batches')
-    .update({ status: 'CLOSED', closed_by: closedBy ?? null, closed_at: new Date().toISOString() })
+    .update({
+      status: 'CLOSED',
+      closed_by: closedBy ?? null,
+      closed_by_email: closedByEmail ?? null,
+      closed_at: new Date().toISOString(),
+    })
     .eq('id', batchId);
 
   if (error) {
@@ -122,10 +131,15 @@ export const closeTransactionBatch = async (batchId: string, closedBy?: string |
   }
 };
 
-export const reopenTransactionBatch = async (batchId: string, reopenedBy?: string | null): Promise<void> => {
+export const reopenTransactionBatch = async (batchId: string, reopenedBy?: string | null, reopenedByEmail?: string | null): Promise<void> => {
   const { error } = await supabase
     .from('transaction_batches')
-    .update({ status: 'OPEN', reopened_by: reopenedBy ?? null, reopened_at: new Date().toISOString() })
+    .update({
+      status: 'OPEN',
+      reopened_by: reopenedBy ?? null,
+      reopened_by_email: reopenedByEmail ?? null,
+      reopened_at: new Date().toISOString(),
+    })
     .eq('id', batchId);
 
   if (error) {

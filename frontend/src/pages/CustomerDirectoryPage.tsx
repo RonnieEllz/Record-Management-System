@@ -368,7 +368,7 @@ export const CustomerDirectoryPage: React.FC = () => {
   const canCreateJobCardsForCustomer = canCreateJobCards(user?.role);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -465,7 +465,7 @@ export const CustomerDirectoryPage: React.FC = () => {
       </div>
 
       {/* Data Table */}
-      <div className="glass-panel overflow-hidden">
+      <div className="glass-panel min-w-0 overflow-hidden">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
@@ -482,17 +482,17 @@ export const CustomerDirectoryPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
-            <table className="w-full min-w-[780px] text-left text-sm text-slate-300">
+          <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+            <table className="w-full min-w-[720px] text-left text-sm text-slate-300">
               <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
-                  <th className="px-6 py-4 font-semibold">Contact Name</th>
-                  <th className="px-6 py-4 font-semibold">Phone</th>
-                  <th className="px-6 py-4 font-semibold">Date In</th>
-                  <th className="px-6 py-4 font-semibold">Reference</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold text-right">Price</th>
-                  <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Contact Name</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Phone</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Date In</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Reference</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Status</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold text-right sm:px-6">Price</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold text-right sm:px-6">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -503,28 +503,28 @@ export const CustomerDirectoryPage: React.FC = () => {
                     onClick={() => handleSelectCustomer(c)}
                     onDoubleClick={() => handleOpenCustomerDetailsModal(c)}
                   >
-                    <td className="px-6 py-4 max-w-[240px]">
+                    <td className="px-3 py-4 max-w-[240px] sm:px-6">
                       <div className="font-semibold text-slate-100 flex items-center gap-2 truncate">
                         {c.name}
                       </div>
                     </td>
-                    <td className="px-6 py-4 space-y-1 min-w-[140px]">
+                    <td className="whitespace-nowrap px-3 py-4 space-y-1 min-w-[140px] sm:px-6">
                       <div className={`text-xs ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-300'} flex items-center gap-1.5 font-mono`}>
                         <Phone className="w-3.5 h-3.5 text-emerald-400" />
                         <span>{c.phone}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 min-w-[160px]">
+                    <td className="whitespace-nowrap px-3 py-4 min-w-[160px] sm:px-6">
                       <div className={`${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'} text-xs`}>{formatDate(c.createdAt)}</div>
                     </td>
-                    <td className="px-6 py-4 min-w-[180px]">
+                    <td className="whitespace-nowrap px-3 py-4 min-w-[180px] sm:px-6">
                       {latestJobCardsByCustomer[c.id] ? (
                         <div className={`font-semibold truncate ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-100'}`}>{latestJobCardsByCustomer[c.id].job_reference}</div>
                       ) : (
                         <div className={`text-sm ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'}`}>—</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 min-w-[150px]">
+                    <td className="whitespace-nowrap px-3 py-4 min-w-[150px] sm:px-6">
                       {latestJobCardsByCustomer[c.id] ? (
                         <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${getStatusBadgeClass(latestJobCardsByCustomer[c.id].status)} whitespace-nowrap`}>
                           <FileText className="w-3 h-3" />
@@ -534,12 +534,12 @@ export const CustomerDirectoryPage: React.FC = () => {
                         <div className={`text-sm ${selectedCustomerId === c.id ? 'text-white' : 'text-slate-400'} whitespace-nowrap`}>No active job card</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right font-semibold text-slate-100">
+                    <td className="whitespace-nowrap px-3 py-4 text-right font-semibold text-slate-100 sm:px-6">
                       {jobTotalsByCustomer[c.id] != null
                         ? `K${jobTotalsByCustomer[c.id].toFixed(2)}`
                         : 'K0.00'}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="whitespace-nowrap px-3 py-4 text-right sm:px-6">
                       {canCreateJobCardsForCustomer && todayBatch?.status === 'CLOSED' ? (
                         <button
                           type="button"

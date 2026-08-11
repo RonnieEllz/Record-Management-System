@@ -88,7 +88,7 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -131,8 +131,8 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="glass-panel min-w-0 p-5 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Customers</p>
@@ -143,7 +143,7 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="mt-3 text-xs text-slate-500">Total active customer contacts in the system.</p>
         </div>
 
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800">
+        <div className="glass-panel min-w-0 p-5 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Job Cards</p>
@@ -154,7 +154,7 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="mt-3 text-xs text-slate-500">Total job cards created across all customers.</p>
         </div>
 
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800">
+        <div className="glass-panel min-w-0 p-5 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Open Jobs</p>
@@ -165,7 +165,7 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="mt-3 text-xs text-slate-500">Jobs currently in active workflow stages.</p>
         </div>
 
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800">
+        <div className="glass-panel min-w-0 p-5 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Ready for collection</p>
@@ -176,7 +176,7 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="mt-3 text-xs text-slate-500">Jobs waiting to be collected by customers.</p>
         </div>
 
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800">
+        <div className="glass-panel min-w-0 p-5 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Today's Revenue</p>
@@ -190,8 +190,8 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* Financial page remains available via the Finance view; summary revenue shown above */}
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+        <div className="glass-panel min-w-0 p-6 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
               <h3 className="text-lg font-semibold text-slate-100">Collection</h3>
@@ -238,7 +238,7 @@ export const AdminDashboardPage: React.FC = () => {
           )}
         </div>
 
-        <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+        <div className="glass-panel min-w-0 p-6 rounded-3xl border border-slate-800">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div>
               <h3 className="text-lg font-semibold text-slate-100">Recent Job Cards</h3>
@@ -282,7 +282,7 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-3xl border border-slate-800">
+      <div className="glass-panel min-w-0 p-6 rounded-3xl border border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Actions</p>

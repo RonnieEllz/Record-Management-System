@@ -28,7 +28,6 @@ const rolePermissions: Record<Role, AccessAction[]> = {
     'readServices',
     'manageServices',
     'readJobCards',
-    'createJobCards',
     'updateJobCards',
     'manageJobCardAssignments',
     'manageFinancials',

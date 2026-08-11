@@ -20,7 +20,10 @@ alter table if exists job_cards
 
 alter table if exists transaction_batches
   add column if not exists reopened_by uuid null,
-  add column if not exists reopened_at timestamptz null;
+  add column if not exists reopened_at timestamptz null,
+  add column if not exists created_by_email text null,
+  add column if not exists closed_by_email text null,
+  add column if not exists reopened_by_email text null;
 
 alter table if exists transaction_batches enable row level security;
 

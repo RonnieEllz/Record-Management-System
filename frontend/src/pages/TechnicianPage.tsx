@@ -117,7 +117,7 @@ export const TechnicianPage: React.FC = () => {
   }, [jobs, searchTerm]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export const TechnicianPage: React.FC = () => {
         ) : null}
       </div>
 
-      <div className="glass-panel overflow-hidden">
+      <div className="glass-panel min-w-0 overflow-hidden">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
@@ -167,42 +167,42 @@ export const TechnicianPage: React.FC = () => {
             <p className="text-base font-semibold text-slate-300">No job cards are currently available.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto overscroll-x-contain">
-            <table className="w-full min-w-[860px] text-left text-sm text-slate-300">
+          <div className="w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[760px] text-left text-sm text-slate-300">
               <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
-                  <th className="px-6 py-4">Reference</th>
-                  <th className="px-6 py-4">Contact Name</th>
-                  <th className="px-6 py-4">Date In</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="whitespace-nowrap px-3 py-4 sm:px-6">Reference</th>
+                  <th className="whitespace-nowrap px-3 py-4 sm:px-6">Contact Name</th>
+                  <th className="whitespace-nowrap px-3 py-4 sm:px-6">Date In</th>
+                  <th className="whitespace-nowrap px-3 py-4 sm:px-6">Status</th>
+                  <th className="whitespace-nowrap px-3 py-4 sm:px-6">Description</th>
+                  <th className="whitespace-nowrap px-3 py-4 text-right sm:px-6">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {filteredJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-800/40 transition-colors">
                     <td
-                      className="px-6 py-4 font-semibold text-slate-100 cursor-pointer"
+                      className="whitespace-nowrap px-3 py-4 font-semibold text-slate-100 cursor-pointer sm:px-6"
                       onClick={() => handleOpenJobDetail(job)}
                     >
                       {job.job_reference}
                     </td>
                     <td
-                      className="px-6 py-4 cursor-pointer"
+                      className="px-3 py-4 cursor-pointer sm:px-6"
                       onClick={() => handleOpenJobDetail(job)}
                     >
                       <div className="font-medium text-slate-200">{job.customer_name}</div>
                       <div className="text-xs text-slate-400">{job.company_name}</div>
                     </td>
                     <td
-                      className="px-6 py-4 text-xs text-slate-400 cursor-pointer"
+                      className="whitespace-nowrap px-3 py-4 text-xs text-slate-400 cursor-pointer sm:px-6"
                       onClick={() => handleOpenJobDetail(job)}
                     >
                       {formatDate(job.created_at)}
                     </td>
                     <td
-                      className="px-6 py-4 cursor-pointer"
+                      className="px-3 py-4 cursor-pointer sm:px-6"
                       onClick={() => handleOpenJobDetail(job)}
                     >
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border ${getStatusBadgeClass(job.status)}`}>
@@ -210,12 +210,12 @@ export const TechnicianPage: React.FC = () => {
                       </span>
                     </td>
                     <td
-                      className="px-6 py-4 text-slate-400 max-w-xs truncate cursor-pointer"
+                      className="px-3 py-4 text-slate-400 max-w-xs truncate cursor-pointer sm:px-6"
                       onClick={() => handleOpenJobDetail(job)}
                     >
                       {job.notes || '—'}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="whitespace-nowrap px-3 py-4 text-right sm:px-6">
                       <div className="flex items-center justify-end gap-2">
                         {canManageAssignments && getJobAction(job) && (
                           <button

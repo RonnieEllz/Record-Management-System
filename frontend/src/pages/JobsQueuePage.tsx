@@ -137,7 +137,7 @@ export const JobsQueuePage: React.FC = () => {
     }
 
     try {
-      await createTransactionBatch(user.id);
+      await createTransactionBatch(user.id, user.email);
       setSuccessMessage("Today's batch was opened successfully.");
       await loadBatchData();
       setIsOpenBatchConfirmOpen(false);
@@ -174,7 +174,7 @@ export const JobsQueuePage: React.FC = () => {
     }
 
     try {
-      await closeTransactionBatch(todayBatch.id, user.id);
+      await closeTransactionBatch(todayBatch.id, user.id, user.email);
       setSuccessMessage('Today\'s batch was closed successfully.');
       await loadBatchData();
       setViewMode('MONTH');
@@ -212,7 +212,7 @@ export const JobsQueuePage: React.FC = () => {
     }
 
     try {
-      await reopenTransactionBatch(todayBatch.id, user.id);
+      await reopenTransactionBatch(todayBatch.id, user.id, user.email);
       setSuccessMessage('Today\'s batch was reopened successfully.');
       await loadBatchData();
       setViewMode('TODAY');
@@ -248,7 +248,7 @@ export const JobsQueuePage: React.FC = () => {
   // Use shared status helpers from lib/status.ts
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="w-full max-w-7xl min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -294,8 +294,8 @@ export const JobsQueuePage: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="glass-panel p-4 rounded-3xl border border-slate-800">
+      <div className="grid min-w-0 gap-4 md:grid-cols-2">
+        <div className="glass-panel min-w-0 p-4 rounded-3xl border border-slate-800">
           <div className="flex items-center gap-3">
             <Clock3 className="w-5 h-5 text-slate-400" />
             <div>
@@ -304,7 +304,7 @@ export const JobsQueuePage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="glass-panel p-4 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="glass-panel min-w-0 p-4 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Today&apos;s Batch</p>
             <p className="text-sm text-slate-200">{todayBatch ? todayBatch.status : 'No batch yet'}</p>
@@ -315,7 +315,7 @@ export const JobsQueuePage: React.FC = () => {
               <p className="text-xs text-slate-400 mt-1">Reopened: {formatDate(todayBatch.reopened_at)}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {!todayBatch && canCloseBatch && (
               <button
                 type="button"
@@ -565,7 +565,7 @@ export const JobsQueuePage: React.FC = () => {
       </div>
 
       {/* Jobs Table */}
-      <div className="glass-panel overflow-hidden">
+      <div className="glass-panel min-w-0 overflow-hidden">
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center text-slate-400 space-y-3">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
@@ -582,15 +582,15 @@ export const JobsQueuePage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain">
-            <table className="w-full min-w-[900px] text-left text-sm text-slate-300">
+          <div className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain">
+            <table className="w-full min-w-[720px] text-left text-sm text-slate-300">
               <thead className="bg-slate-950/80 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
                 <tr>
-                  <th className="px-3 py-4 font-semibold sm:px-6">Date In</th>
-                  <th className="px-3 py-4 font-semibold sm:px-6">Contact Name</th>
-                  <th className="px-3 py-4 font-semibold sm:px-6">Reference</th>
-                  <th className="px-3 py-4 font-semibold sm:px-6">Status</th>
-                  <th className="px-3 py-4 font-semibold text-right sm:px-6">Price</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Date In</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Contact Name</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Reference</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold sm:px-6">Status</th>
+                  <th className="whitespace-nowrap px-3 py-4 font-semibold text-right sm:px-6">Price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -600,12 +600,12 @@ export const JobsQueuePage: React.FC = () => {
                     onClick={() => handleOpenDetail(job)}
                     className="hover:bg-slate-800/40 transition-colors cursor-pointer"
                   >
-                    <td className="px-6 py-4 text-xs text-slate-400">{formatDate(job.created_at)}</td>
-                    <td className="px-6 py-4 text-slate-300">{job.customer_name}</td>
-                    <td className="px-6 py-4 font-semibold text-slate-100">
+                    <td className="whitespace-nowrap px-3 py-4 text-xs text-slate-400 sm:px-6">{formatDate(job.created_at)}</td>
+                    <td className="px-3 py-4 text-slate-300 sm:px-6">{job.customer_name}</td>
+                    <td className="whitespace-nowrap px-3 py-4 font-semibold text-slate-100 sm:px-6">
                       <span className="hover:text-indigo-400">{job.job_reference}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="whitespace-nowrap px-3 py-4 sm:px-6">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold border ${getStatusBadgeClass(
                           job.status,
@@ -614,7 +614,7 @@ export const JobsQueuePage: React.FC = () => {
                         {getStatusLabel(job.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right font-semibold text-slate-100">
+                    <td className="whitespace-nowrap px-3 py-4 text-right font-semibold text-slate-100 sm:px-6">
                       {job.price != null ? `K${job.price.toFixed(2)}` : 'K0.00'}
                     </td>
                   </tr>
